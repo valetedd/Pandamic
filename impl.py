@@ -77,13 +77,16 @@ class Handler(object):
 class UploadHandler(Handler):
 
     def pushDataToDb(self, path: str):
+        db = self.getDbPathOrURL()
         if ".csv" in path:
             meta = MetadataUploadHandler()
+            meta.setDbPathOrUrl(db)
             meta.pushDataToDb(path)
             print("Data succesfully uploaded to database!")
             return True
         elif ".json" in path:
             pro = ProcessDataUploadHandler()
+            pro.setDbPathOrUrl(db)
             pro.pushDataToDb(path)
             print("Data succesfully uploaded to database!")
             return True
