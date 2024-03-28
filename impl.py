@@ -107,42 +107,47 @@ class ProcessDataUploadHandler(UploadHandler):
         process_df = pd.json_normalize(data, sep=": ")
         process_df = process_df.map(lambda x: ", ".join(x) if type(x) == list else x)
 
-        # Creating new sub-dataframes corresponding to each type of activity in the data model and adding 
-        # the object id columns to each of them:
-        id_column = process_df["object id"]
+        # Adding an internal ID for each activity in the dataframe:
+        internal_id = [f"activities-{i}" for i in range(1, len(process_df)+1)]
+        process_df.index = internal_id
+        print(process_df)
 
-        acq_sdf = process_df.loc[:, "object id":"acquisition: end date"]
+        # Creating new sub-dataframes corresponding to each type of activity in the data model, adding 
+        # the object id columns and an internal ID to each of them:
+        id_column = process_df["object id"]
+        
+        acq_sdf = process_df.loc[:, "acquisition: responsible institute":"acquisition: end date"]
+        acq_sdf.insert(len(acq_sdf.columns), "object id", id_column)
+
 
         pro_sdf = process_df.loc[:, "processing: responsible institute":"processing: end date"]
-        pro_sdf.insert(0, "object id", id_column)
+        pro_sdf.insert(len(pro_sdf.columns), "object id", id_column)
 
         mod_sdf = process_df.loc[:, "modelling: responsible institute":"modelling: end date"]
-        mod_sdf.insert(0, "object id", id_column)
+        mod_sdf.insert(len(mod_sdf.columns), "object id", id_column)
 
         opt_sdf = process_df.loc[:, "optimising: responsible institute":"optimising: end date"]
-        opt_sdf.insert(0, "object id", id_column)
+        opt_sdf.insert(len(opt_sdf.columns), "object id", id_column)
 
         exp_sdf = process_df.loc[:, "exporting: responsible institute":"exporting: end date"]
-        exp_sdf.insert(0, "object id", id_column)
+        exp_sdf.insert(len(exp_sdf.columns), "object id", id_column)
 
     # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
-        print(db)
         with connect(db) as con:
-            acq_sdf.to_sql("AcquisitionData", con, if_exists="replace", index=False)
-            pro_sdf.to_sql("ProcessingData", con, if_exists="replace", index=False)
-            mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
-            opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
-            exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
-        
+            acq_sdf.to_sql("AcquisitionData", con, if_exists="replace")
+            pro_sdf.to_sql("ProcessingData", con, if_exists="replace")
+            mod_sdf.to_sql("ModellingData", con, if_exists="replace")
+            opt_sdf.to_sql("OptimisingData", con, if_exists="replace")
+            exp_sdf.to_sql("ExportingData", con, if_exists="replace")
 
 class MetadataUploadHandler(UploadHandler):
     pass
 
-### Tests ###
-# process = ProcessDataUploadHandler()
-# process.setDbPathOrUrl("databases/relational.db")
-# process.pushDataToDb("data/process.json")
+### Tests #)##
+process = ProcessDataUploadHandler()
+process.setDbPathOrUrl("databases/relational.db")
+process.pushDataToDb("data/process.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
