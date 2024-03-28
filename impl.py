@@ -97,17 +97,18 @@ class UploadHandler(Handler):
 class ProcessDataUploadHandler(UploadHandler):
 
     def pushDataToDb(self, json_path):
+
         # Reading the JSON file
         with open(json_path, "r", encoding="utf-8") as f:           
             data = json.load(f)
 
-        # Preprocessing the file, by flattening the JSON's nested structture into a dataframe
+        # Preprocessing the file, by flattening the JSON's nested structure into a dataframe
         # and converting the list-type values in comma separated strings:
         process_df = pd.json_normalize(data, sep=": ")
         process_df = process_df.map(lambda x: ", ".join(x) if type(x) == list else x)
 
         # Creating new sub-dataframes corresponding to each type of activity in the data model and adding 
-        # the object id column:
+        # the object id columns to each of them:
         id_column = process_df["object id"]
 
         acq_sdf = process_df.loc[:, "object id":"acquisition: end date"]
