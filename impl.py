@@ -104,20 +104,20 @@ class ProcessDataUploadHandler(UploadHandler):
             data = json.load(f)
 
         # Preprocessing the file, by flattening the JSON's nested structure into a dataframe
-        # and converting the list-type values in comma separated strings:
-        process_df = pd.json_normalize(data, sep=": ")
-        process_df = process_df.map(lambda x: ", ".join(x) if type(x) == list else x)
+        # and converting the list-type values in comma-separated strings:
+        raw_df = pd.json_normalize(data, sep=": ")
+        raw_df = raw_df.map(lambda x: ", ".join(x) if type(x) == list else x)
         
-        # Creating new sub-dataframe corresponding to each type of activity in the data model:
-        acq_sdf = process_df.loc[:, "acquisition: responsible institute":"acquisition: end date"]
-        pro_sdf = process_df.loc[:, "processing: responsible institute":"processing: end date"]
-        mod_sdf = process_df.loc[:, "modelling: responsible institute":"modelling: end date"]
-        opt_sdf = process_df.loc[:, "optimising: responsible institute":"optimising: end date"]
-        exp_sdf = process_df.loc[:, "exporting: responsible institute":"exporting: end date"]
+        # Creating new sub-dataframes corresponding to each type of activity in the data model:
+        acq_sdf = raw_df.loc[:, "acquisition: responsible institute":"acquisition: end date"]
+        pro_sdf = raw_df.loc[:, "processing: responsible institute":"processing: end date"]
+        mod_sdf = raw_df.loc[:, "modelling: responsible institute":"modelling: end date"]
+        opt_sdf = raw_df.loc[:, "optimising: responsible institute":"optimising: end date"]
+        exp_sdf = raw_df.loc[:, "exporting: responsible institute":"exporting: end date"]
         
         # Adding internalId and object id columns to each sub-dataframe
         df_list = [acq_sdf, pro_sdf, mod_sdf, opt_sdf, exp_sdf]
-        id_column = process_df["object id"] 
+        id_column = raw_df["object id"] 
         counter_for_ids = 0
         for df in df_list: 
             last_idx = counter_for_ids + len(df)
@@ -126,7 +126,7 @@ class ProcessDataUploadHandler(UploadHandler):
             counter_for_ids += len(df)
             df.insert(len(df.columns), "object id", id_column)
 
-    # Uploading the resulting dataframes to the relational database:
+        # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
         with connect(db) as con:
             acq_sdf.to_sql("AcquisitionData", con, if_exists="replace", index=False)
@@ -139,7 +139,7 @@ class ProcessDataUploadHandler(UploadHandler):
 class MetadataUploadHandler(UploadHandler):
     pass
 
-### Tests #)##
+### Tests ###
 process = ProcessDataUploadHandler()
 process.setDbPathOrUrl("databases/relational.db")
 process.pushDataToDb("data/process.json")
@@ -235,6 +235,3 @@ class AdvancedMashup(BasicMashup):
         pass
     def getAuthorsOfObjectsAcquiredInTimeFrame(start, end):
         pass
-
-
-
