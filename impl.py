@@ -1,7 +1,6 @@
 import pandas as pd
 from sqlite3 import connect
 import json
-from collections import deque
 
 ############# ENTITIES ###############
 
@@ -83,13 +82,11 @@ class UploadHandler(Handler):
             meta = MetadataUploadHandler()
             meta.setDbPathOrUrl(db)
             meta.pushDataToDb(path)
-            print("Data succesfully uploaded to database!")
             return True
         elif ".json" in path:
             pro = ProcessDataUploadHandler()
             pro.setDbPathOrUrl(db)
             pro.pushDataToDb(path)
-            print("Data succesfully uploaded to database!")
             return True
         else:
             print("Unsupported format. Only .csv or .json files can be specified")
@@ -103,28 +100,29 @@ class ProcessDataUploadHandler(UploadHandler):
         with open(json_path, "r", encoding="utf-8") as f:           
             data = json.load(f)
 
-        # Preprocessing the file, by flattening the JSON's nested structure into a dataframe
-        # and converting the list-type values in comma-separated strings:
-        raw_df = pd.json_normalize(data, sep=": ")
-        raw_df = raw_df.map(lambda x: ", ".join(x) if type(x) == list else x)
+        # Flattening nested Json to DataFrame
+        flattened_df = pd.json_normalize(data, sep=" ")
         
         # Creating new sub-dataframes corresponding to each type of activity in the data model:
-        acq_sdf = raw_df.loc[:, "acquisition: responsible institute":"acquisition: end date"]
-        pro_sdf = raw_df.loc[:, "processing: responsible institute":"processing: end date"]
-        mod_sdf = raw_df.loc[:, "modelling: responsible institute":"modelling: end date"]
-        opt_sdf = raw_df.loc[:, "optimising: responsible institute":"optimising: end date"]
-        exp_sdf = raw_df.loc[:, "exporting: responsible institute":"exporting: end date"]
+        acq_sdf = flattened_df.loc[:, "acquisition responsible institute":"acquisition end date"]
+        pro_sdf = flattened_df.loc[:, "processing responsible institute":"processing end date"]
+        mod_sdf = flattened_df.loc[:, "modelling responsible institute":"modelling end date"]
+        opt_sdf = flattened_df.loc[:, "optimising responsible institute":"optimising end date"]
+        exp_sdf = flattened_df.loc[:, "exporting responsible institute":"exporting end date"]
         
-        # Adding internalId and object id columns to each sub-dataframe
+        # Working on columns: 
         df_list = [acq_sdf, pro_sdf, mod_sdf, opt_sdf, exp_sdf]
-        id_column = raw_df["object id"] 
-        counter_for_ids = 0
+        id_column = flattened_df["object id"] # secondary keys to be added 
+        rows_done = 0 
         for df in df_list: 
-            last_idx = counter_for_ids + len(df)
-            ids = [f"activity-{i}" for i in range(counter_for_ids, last_idx)] 
-            df.insert(0, "internalId", ids)
-            counter_for_ids += len(df)
-            df.insert(len(df.columns), "object id", id_column)
+            df.columns = ["_".join(col.split(" ")[1:]) for col in df.columns] # regularizing column names
+            df.loc[:, "tool"] = df.tool.apply(lambda x: ", ".join(x)) # joining multiple tools into one string
+            # adding internal ids and secondary keys to the dataframes:
+            last_row = rows_done + len(df)
+            ids = [f"activity-{i}" for i in range(rows_done, last_row)] # generating list of internal ids 
+            df.insert(0, "internal_id", ids) 
+            df.insert(len(df.columns), "object_id", id_column) # adding the secondary keys
+            rows_done += len(df) 
 
         # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
@@ -134,7 +132,7 @@ class ProcessDataUploadHandler(UploadHandler):
             mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
             opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
             exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
-        
+            print("Data succesfully uploaded to database!")
 
 class MetadataUploadHandler(UploadHandler):
     pass
@@ -159,21 +157,142 @@ class QueryHandler(Handler):
 class ProcessDataQueryHandler(QueryHandler):
 
     def getAllActivities(self):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
     
     def getActivitiesByResponsibleInstitution(self, partialName):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
 
     def getActivitiesByResponsiblePerson(self, partialName):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
+        
     def getActivitiesUsingTool(self, partialName):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
+        
     def getActivitiesStartedAfter(self, date: str):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
+        
     def getActivitiesEndedBefore(self, date: str):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ProcessingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ModellingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM OptimisingData 
+                 UNION SELECT internal_id, responsible_institute, 
+                              responsible_person, NULL as technique, 
+                              tool, start_date, end_date, object_id
+                                FROM ExportingData;"""
+            df = pd.read_sql(query, con)
+            return df
+        
     def getAcquisitionsByTechnique(partialName):
-        pass
+        with connect("databases/relational.db") as con:
+            query = """SELECT * FROM AcquisitionData;"""
+            df = pd.read_sql(query, con)
+            return df
 
 class MetadataQueryHandler(QueryHandler):
 
@@ -187,6 +306,9 @@ class MetadataQueryHandler(QueryHandler):
     def getCulturalHeritageObjectsAuthoredBy(authorId: str):
         pass
 
+### Test
+obj = ProcessDataQueryHandler()
+print(obj.getAllActivities())
 ############## MASHUP #################
 
 class BasicMashup:
