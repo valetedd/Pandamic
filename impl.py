@@ -99,7 +99,6 @@ class ProcessDataUploadHandler(UploadHandler):
         # Reading the JSON file
         with open(json_path, "r", encoding="utf-8") as f:           
             data = json.load(f)
-
         # Flattening nested Json to DataFrame
         flattened_df = pd.json_normalize(data, sep=" ")
         
@@ -138,9 +137,9 @@ class MetadataUploadHandler(UploadHandler):
     pass
 
 ### Tests ###
-process = ProcessDataUploadHandler()
-process.setDbPathOrUrl("databases/relational.db")
-process.pushDataToDb("data/process.json")
+# process = ProcessDataUploadHandler()
+# process.setDbPathOrUrl("databases/relational.db")
+# process.pushDataToDb("data/process.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
@@ -157,142 +156,26 @@ class QueryHandler(Handler):
 class ProcessDataQueryHandler(QueryHandler):
 
     def getAllActivities(self):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+        pass
     
-    def getActivitiesByResponsibleInstitution(self, partialName):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+    def getActivitiesByResponsibleInstitution(self, partialName: str):
+        pass
 
-    def getActivitiesByResponsiblePerson(self, partialName):
+    def getActivitiesByResponsiblePerson(self, partialName: str):
         with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+            pass
         
-    def getActivitiesUsingTool(self, partialName):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+    def getActivitiesUsingTool(self, partialName: str):
+        pass
         
     def getActivitiesStartedAfter(self, date: str):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+        pass
         
     def getActivitiesEndedBefore(self, date: str):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ProcessingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ModellingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM OptimisingData 
-                 UNION SELECT internal_id, responsible_institute, 
-                              responsible_person, NULL as technique, 
-                              tool, start_date, end_date, object_id
-                                FROM ExportingData;"""
-            df = pd.read_sql(query, con)
-            return df
+        pass
         
-    def getAcquisitionsByTechnique(partialName):
-        with connect("databases/relational.db") as con:
-            query = """SELECT * FROM AcquisitionData;"""
-            df = pd.read_sql(query, con)
-            return df
+    def getAcquisitionsByTechnique(partialName: str):
+        pass
 
 class MetadataQueryHandler(QueryHandler):
 
@@ -307,8 +190,8 @@ class MetadataQueryHandler(QueryHandler):
         pass
 
 ### Test
-obj = ProcessDataQueryHandler()
-print(obj.getAllActivities())
+# obj = ProcessDataQueryHandler()
+# print(obj.getAllActivities())
 ############## MASHUP #################
 
 class BasicMashup:
