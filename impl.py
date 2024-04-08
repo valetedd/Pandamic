@@ -1,6 +1,7 @@
 import pandas as pd
 from sqlite3 import connect
 import json
+import util
 
 ############# ENTITIES ###############
 
@@ -96,38 +97,35 @@ class ProcessDataUploadHandler(UploadHandler):
 
     def pushDataToDb(self, json_path):
 
-        # Reading the JSON file
-        with open(json_path, "r", encoding="utf-8") as f:           
-            data = json.load(f)
-        # Flattening nested Json to DataFrame
-        flattened_df = pd.json_normalize(data, sep=" ")
-        
-        # Creating new sub-dataframes corresponding to each type of activity in the data model:
-        acq_sdf = flattened_df.loc[:, "acquisition responsible institute":"acquisition end date"]
-        pro_sdf = flattened_df.loc[:, "processing responsible institute":"processing end date"]
-        mod_sdf = flattened_df.loc[:, "modelling responsible institute":"modelling end date"]
-        opt_sdf = flattened_df.loc[:, "optimising responsible institute":"optimising end date"]
-        exp_sdf = flattened_df.loc[:, "exporting responsible institute":"exporting end date"]
-        
-        # Working on columns: 
-        df_list = [acq_sdf, pro_sdf, mod_sdf, opt_sdf, exp_sdf]
-        id_column = flattened_df["object id"] # secondary keys to be added 
-        rows_done = 0 
-        for df in df_list: 
-            df.columns = ["_".join(col.split(" ")[1:]) for col in df.columns] # regularizing column names
-            df.loc[:, "tool"] = df.tool.apply(lambda x: ", ".join(x)) # joining multiple tools into one string
-            # adding internal ids and secondary keys to the dataframes:
-            last_row = rows_done + len(df)
-            ids = [f"activity-{i}" for i in range(rows_done, last_row)] # generating list of internal ids 
-            df.insert(0, "internal_id", ids) 
-            df.insert(len(df.columns), "object_id", id_column) # adding the secondary keys
-            rows_done += len(df) 
+        act_df = util.njson_to_df(json_path)
+        # Adding an internal id to the dataframe
+        int_ids = [f"act_{i}" for i in range(len(act_df))]
+        act_df.insert(0, "internal_id", int_ids)
+        # Converting the "tool" column list-data to comma-separated strings
+        act_df["tool"] = act_df["tool"].apply(lambda x: ", ".join(x))
+
+        # Slicing to create sub-dataframes corresponding to each type of activity in the data model:
+        acq_sdf = act_df[act_df["type"] == "acquisition"]
+        acq_sdf.drop(columns=["type"], inplace=True)
+
+        pro_sdf = act_df[act_df["type"] == "processing"]
+        pro_sdf.drop(columns=["type"], inplace=True)
+
+        mod_sdf = act_df[act_df["type"] == "modelling"]
+        mod_sdf.drop(columns=["type"], inplace=True)
+
+        opt_sdf = act_df[act_df["type"] == "optimising"]
+        opt_sdf.drop(columns=["type"], inplace=True)
+
+        exp_sdf = act_df[act_df["type"] == "exporting"]
+        exp_sdf.drop(columns=["type"], inplace=True)
 
         # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
         with connect(db) as con:
+            act_df.to_sql("ActivitiesData", con, if_exists="replace", index=False)
             acq_sdf.to_sql("AcquisitionData", con, if_exists="replace", index=False)
-            pro_sdf.to_sql("ProcessingData", con, if_exists="replace", index=False)
+            pro_df.to_sql("ProcessingData", con, if_exists="replace", index=False)
             mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
             opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
             exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
@@ -137,9 +135,9 @@ class MetadataUploadHandler(UploadHandler):
     pass
 
 ### Tests ###
-# process = ProcessDataUploadHandler()
-# process.setDbPathOrUrl("databases/relational.db")
-# process.pushDataToDb("data/process.json")
+process = ProcessDataUploadHandler()
+process.setDbPathOrUrl("databases/relational.db")
+process.pushDataToDb("data/process.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
@@ -162,8 +160,7 @@ class ProcessDataQueryHandler(QueryHandler):
         pass
 
     def getActivitiesByResponsiblePerson(self, partialName: str):
-        with connect("databases/relational.db") as con:
-            pass
+        pass
         
     def getActivitiesUsingTool(self, partialName: str):
         pass
