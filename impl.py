@@ -6,7 +6,7 @@ from util import *
 ############# ENTITIES ###############
 
 class Activity():
-    def __init__(self, institute, person=None, tool=None, start=None, end=None):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         self.institute = institute
         self.person = person
         self.tool = tool
@@ -32,7 +32,7 @@ class Activity():
         pass
 
 class Acquisition(Activity):
-    def __init__(self, institute, person, tool, start, end, technique):
+    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         self.technique = technique
         super().__init__(institute, person, tool, start, end)
         
@@ -41,19 +41,19 @@ class Acquisition(Activity):
         return self.technique
     
 class Processing(Activity):
-    def __init__(self, institute, person, tool, start, end):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         super().__init__(institute, person, tool, start, end)
 
 class Modelling(Activity):
-    def __init__(self, institute, person, tool, start, end):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         super().__init__(institute, person, tool, start, end)
 
 class Optimising(Activity):
-    def __init__(self, institute, person, tool, start, end):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         super().__init__(institute, person, tool, start, end)
 
 class Exporting(Activity):
-    def __init__(self, institute, person, tool, start, end):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
         super().__init__(institute, person, tool, start, end)
 
 ################## UPLOAD MANAGEMENT ######################
@@ -65,7 +65,7 @@ class Handler(object):
     def getDbPathOrURL(self):
         return self.dbPathOrURL
     
-    def setDbPathOrUrl(self, pathOrURL):
+    def setDbPathOrUrl(self, pathOrURL) -> bool:
         if isinstance(pathOrURL, str):
             self.dbPathOrURL = pathOrURL
             print(self.dbPathOrURL)
@@ -77,7 +77,7 @@ class Handler(object):
         
 class UploadHandler(Handler):
 
-    def pushDataToDb(self, path: str):
+    def pushDataToDb(self, path:str) -> bool:
         db = self.getDbPathOrURL()
         if ".csv" in path:
             meta = MetadataUploadHandler()
@@ -95,7 +95,7 @@ class UploadHandler(Handler):
             
 class ProcessDataUploadHandler(UploadHandler):
 
-    def pushDataToDb(self, json_path):
+    def pushDataToDb(self, json_path:str) -> bool:
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         act_df = njson_to_df(data)
@@ -121,15 +121,16 @@ class ProcessDataUploadHandler(UploadHandler):
             mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
             opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
             exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
-            print("Data succesfully uploaded to database!")
+        print("Data succesfully uploaded to database!")
+        return True
 
 class MetadataUploadHandler(UploadHandler):
     pass
 
 ### Tests ###
-process = ProcessDataUploadHandler()
-process.setDbPathOrUrl("databases/relational.db")
-process.pushDataToDb("data/process.json")
+# process = ProcessDataUploadHandler()
+# process.setDbPathOrUrl("databases/relational.db")
+# process.pushDataToDb("data/process.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
@@ -140,42 +141,42 @@ process.pushDataToDb("data/process.json")
     
 class QueryHandler(Handler):
     
-    def getById(self, id):
+    def getById(self, id: str) -> pd.DataFrame:
         pass
 
 class ProcessDataQueryHandler(QueryHandler):
 
-    def getAllActivities(self):
+    def getAllActivities(self) -> pd.DataFrame:
         pass
     
-    def getActivitiesByResponsibleInstitution(self, partialName: str):
+    def getActivitiesByResponsibleInstitution(self, partialName: str) -> pd.DataFrame:
         pass
 
-    def getActivitiesByResponsiblePerson(self, partialName: str):
+    def getActivitiesByResponsiblePerson(self, partialName: str) -> pd.DataFrame:
         pass
         
-    def getActivitiesUsingTool(self, partialName: str):
+    def getActivitiesUsingTool(self, partialName: str) -> pd.DataFrame:
         pass
         
-    def getActivitiesStartedAfter(self, date: str):
+    def getActivitiesStartedAfter(self, date: str) -> pd.DataFrame:
         pass
         
-    def getActivitiesEndedBefore(self, date: str):
+    def getActivitiesEndedBefore(self, date: str) -> pd.DataFrame:
         pass
         
-    def getAcquisitionsByTechnique(partialName: str):
+    def getAcquisitionsByTechnique(partialName: str) -> pd.DataFrame:
         pass
 
 class MetadataQueryHandler(QueryHandler):
 
-    def getAllPeople():
+    def getAllPeople() -> pd.DataFrame:
         pass
-    def getAllCulturalHeritageObjects():
+    def getAllCulturalHeritageObjects() -> pd.DataFrame:
         pass
-    def getAuthorsOfCulturalHeritageObject(objectId):
+    def getAuthorsOfCulturalHeritageObject(objectId: str) -> pd.DataFrame:
         pass
 
-    def getCulturalHeritageObjectsAuthoredBy(authorId: str):
+    def getCulturalHeritageObjectsAuthoredBy(authorId: str) -> pd.DataFrame:
         pass
 
 ### Test
@@ -184,48 +185,48 @@ class MetadataQueryHandler(QueryHandler):
 ############## MASHUP #################
 
 class BasicMashup:
-    def __init__(self, mq=None, pq=None):
-        self.metadataQuery = list(mq)
-        self.processdataQuery = list(pq)
-    def cleanMetadataHandlers():
+    def __init__(self):
+        self.metadataQuery = [MetadataQueryHandler]
+        self.processdataQuery = [ProcessDataQueryHandler]
+    def cleanMetadataHandlers() -> bool:
         pass
-    def cleanProcessHandlers():
+    def cleanProcessHandlers() -> bool:
         pass
-    def addMetadataHandler(handler):
+    def addMetadataHandler(handler: MetadataQueryHandler) -> bool:
         pass
-    def addProcessHandler(handler):
+    def addProcessHandler(handler: ProcessDataQueryHandler) -> bool:
         pass
-    def getEntityById(id):
+    def getEntityById(id: str):
         pass
     def getAllPeople():
         pass
     def getAllCulturalHeritageObjects():
         pass
-    def getAuthorsOfCulturalHeritageObjects(objectId):
+    def getAuthorsOfCulturalHeritageObjects(objectId: str):
         pass
-    def getCulturalHeritageObjectsAuthoredBy(personalId):
+    def getCulturalHeritageObjectsAuthoredBy(personalId: str):
         pass
     def getAllActivities():
         pass
-    def getActivitiesByResponsibleInstitution(partialName):
+    def getActivitiesByResponsibleInstitution(partialName: str):
         pass
-    def getActivitiesByResponsiblePerson(partialName):
+    def getActivitiesByResponsiblePerson(partialName: str):
         pass
-    def getActivitiesUsingTool(partialName):
+    def getActivitiesUsingTool(partialName: str):
         pass
-    def getActivitiesStartedAfter(date):
+    def getActivitiesStartedAfter(date: str):
         pass
-    def getActivitiesEndedAfter(date):
+    def getActivitiesEndedAfter(date: str):
         pass
-    def getAcquisitionByTechnique(partialName):
+    def getAcquisitionByTechnique(partialName: str):
         pass
 
 class AdvancedMashup(BasicMashup):
-    def getActivitiesOnObjectsAuthoredBy(personId):
+    def getActivitiesOnObjectsAuthoredBy(personId: str):
         pass
-    def getObjectsHandledByResponsiblePerson(partialName):
+    def getObjectsHandledByResponsiblePerson(partialName: str):
         pass
-    def getObjectsHandledByResponsibleInstitution(partialName):
+    def getObjectsHandledByResponsibleInstitution(partialName: str):
         pass
-    def getAuthorsOfObjectsAcquiredInTimeFrame(start, end):
+    def getAuthorsOfObjectsAcquiredInTimeFrame(start: str, end: str):
         pass
