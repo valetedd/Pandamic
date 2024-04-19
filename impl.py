@@ -106,20 +106,11 @@ class ProcessDataUploadHandler(UploadHandler):
         act_df["tool"] = act_df["tool"].apply(lambda x: ", ".join(x))
 
         # Slicing to create sub-dataframes corresponding to each type of activity in the data model:
-        acq_sdf = act_df[act_df["type"] == "acquisition"]
-        acq_sdf = acq_sdf.drop(columns=["type"])
-
-        pro_sdf = act_df[act_df["type"] == "processing"]
-        pro_sdf = pro_sdf.drop(columns=["type"])
-
-        mod_sdf = act_df[act_df["type"] == "modelling"]
-        mod_sdf = mod_sdf.drop(columns=["type"])
-
-        opt_sdf = act_df[act_df["type"] == "optimising"]
-        opt_sdf = opt_sdf.drop(columns=["type"])
-
-        exp_sdf = act_df[act_df["type"] == "exporting"]
-        exp_sdf = exp_sdf.drop(columns=["type"])
+        acq_sdf = act_df[act_df["type"] == "acquisition"].drop(columns=["type"])
+        pro_sdf = act_df[act_df["type"] == "processing"].drop(columns=["type"])
+        mod_sdf = act_df[act_df["type"] == "modelling"].drop(columns=["type"])
+        opt_sdf = act_df[act_df["type"] == "optimising"].drop(columns=["type"])
+        exp_sdf = act_df[act_df["type"] == "exporting"].drop(columns=["type"])
 
         # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
