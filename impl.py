@@ -1,7 +1,7 @@
 import pandas as pd
 from sqlite3 import connect
 import json
-import util
+from util import *
 
 ############# ENTITIES ###############
 
@@ -96,8 +96,9 @@ class UploadHandler(Handler):
 class ProcessDataUploadHandler(UploadHandler):
 
     def pushDataToDb(self, json_path):
-
-        act_df = util.njson_to_df(json_path)
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        act_df = njson_to_df(data)
         # Adding an internal id to the dataframe
         int_ids = [f"act_{i}" for i in range(len(act_df))]
         act_df.insert(0, "internal_id", int_ids)
@@ -106,26 +107,26 @@ class ProcessDataUploadHandler(UploadHandler):
 
         # Slicing to create sub-dataframes corresponding to each type of activity in the data model:
         acq_sdf = act_df[act_df["type"] == "acquisition"]
-        acq_sdf.drop(columns=["type"], inplace=True)
+        acq_sdf = acq_sdf.drop(columns=["type"])
 
         pro_sdf = act_df[act_df["type"] == "processing"]
-        pro_sdf.drop(columns=["type"], inplace=True)
+        pro_sdf = pro_sdf.drop(columns=["type"])
 
         mod_sdf = act_df[act_df["type"] == "modelling"]
-        mod_sdf.drop(columns=["type"], inplace=True)
+        mod_sdf = mod_sdf.drop(columns=["type"])
 
         opt_sdf = act_df[act_df["type"] == "optimising"]
-        opt_sdf.drop(columns=["type"], inplace=True)
+        opt_sdf = opt_sdf.drop(columns=["type"])
 
         exp_sdf = act_df[act_df["type"] == "exporting"]
-        exp_sdf.drop(columns=["type"], inplace=True)
+        exp_sdf = exp_sdf.drop(columns=["type"])
 
         # Uploading the resulting dataframes to the relational database:
         db = self.getDbPathOrURL()
         with connect(db) as con:
             act_df.to_sql("ActivitiesData", con, if_exists="replace", index=False)
             acq_sdf.to_sql("AcquisitionData", con, if_exists="replace", index=False)
-            pro_df.to_sql("ProcessingData", con, if_exists="replace", index=False)
+            pro_sdf.to_sql("ProcessingData", con, if_exists="replace", index=False)
             mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
             opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
             exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
