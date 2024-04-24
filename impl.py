@@ -2,6 +2,7 @@ import pandas as pd
 from sqlite3 import connect
 import json
 from util import *
+import hashlib
 
 ############# ENTITIES ###############
 
@@ -36,7 +37,6 @@ class Acquisition(Activity):
         self.technique = technique
         super().__init__(institute, person, tool, start, end)
         
-    
     def getTechnique(self):
         return self.technique
     
@@ -65,72 +65,73 @@ class Handler(object):
     def getDbPathOrURL(self):
         return self.dbPathOrURL
     
-    def setDbPathOrUrl(self, pathOrURL) -> bool:
-        if isinstance(pathOrURL, str):
+    def setDbPathOrUrl(self, pathOrURL: str) -> bool:
+        try:
             self.dbPathOrURL = pathOrURL
-            print(self.dbPathOrURL)
             print("Database location succesfully updated")
             return True
-        else:
-            print("Input argument must be a string")
+        except ValueError as e:
+            print(f"{e}: input argument must be a string")
             return False
         
 class UploadHandler(Handler):
 
-    def pushDataToDb(self, path:str) -> bool:
-        db = self.getDbPathOrURL()
-        if ".csv" in path:
-            meta = MetadataUploadHandler()
-            meta.setDbPathOrUrl(db)
-            meta.pushDataToDb(path)
-            return True
-        elif ".json" in path:
-            pro = ProcessDataUploadHandler()
-            pro.setDbPathOrUrl(db)
-            pro.pushDataToDb(path)
-            return True
+    def pushDataToDb(self, path: str) -> bool:
+        
+        try:
+            db = self.getDbPathOrURL()
+            if ".csv" in path:
+                meta = MetadataUploadHandler()
+                meta.setDbPathOrUrl(db)
+                meta.pushDataToDb(path)
+                return True
+            elif ".json" in path:
+                pro = ProcessDataUploadHandler()
+                pro.setDbPathOrUrl(db)
+                pro.pushDataToDb(path)
+                return True
+        except ValueError as e:
+            print(f"{e}: input argument must be a string")
+        except FileNotFoundError as f:
+            print("File not found. Try specifying a different path")
         else:
             print("Unsupported format. Only .csv or .json files can be specified")
             return False
             
 class ProcessDataUploadHandler(UploadHandler):
 
-    def pushDataToDb(self, json_path:str) -> bool:
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        act_df = njson_to_df(data)
-        # Adding an internal id to the dataframe
-        int_ids = [f"act_{i}" for i in range(len(act_df))]
-        act_df.insert(0, "internal_id", int_ids)
-        # Converting the "tool" column list-data to comma-separated strings
-        act_df["tool"] = act_df["tool"].apply(lambda x: ", ".join(x))
+    def pushDataToDb(self, json_path: str) -> bool:
 
-        # Slicing to create sub-dataframes corresponding to each type of activity in the data model:
-        acq_sdf = act_df[act_df["type"] == "acquisition"].drop(columns=["type"])
-        pro_sdf = act_df[act_df["type"] == "processing"].drop(columns=["type"])
-        mod_sdf = act_df[act_df["type"] == "modelling"].drop(columns=["type"])
-        opt_sdf = act_df[act_df["type"] == "optimising"].drop(columns=["type"])
-        exp_sdf = act_df[act_df["type"] == "exporting"].drop(columns=["type"])
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)             
+            raw_df = njson_to_df(data) # Custom function to traverse json
+            raw_df = raw_df.map(regularize_data) # Regularizing datatypes 
+            act_df = add_hash_ids(raw_df) # Adding stable-hash internal IDs
 
-        # Uploading the resulting dataframes to the relational database:
-        db = self.getDbPathOrURL()
-        with connect(db) as con:
-            act_df.to_sql("ActivitiesData", con, if_exists="replace", index=False)
-            acq_sdf.to_sql("AcquisitionData", con, if_exists="replace", index=False)
-            pro_sdf.to_sql("ProcessingData", con, if_exists="replace", index=False)
-            mod_sdf.to_sql("ModellingData", con, if_exists="replace", index=False)
-            opt_sdf.to_sql("OptimisingData", con, if_exists="replace", index=False)
-            exp_sdf.to_sql("ExportingData", con, if_exists="replace", index=False)
-        print("Data succesfully uploaded to database!")
-        return True
+            # Selecting sub-dataframes for each type
+            db = self.getDbPathOrURL()
+            types = act_df["type"].unique()
+            for type in types:
+                sdf = act_df[act_df["type"] == type].drop(columns=["type"])
+                df_name = f"{type}Data" # table name to use fo upload
+                safe_upload(sdf, df_name, db) # uploading them to the selected db
+            print("Data succesfully uploaded to database!")
+            return True
+        except ValueError as e:
+            print(f"{e}: input argument must be a string")
+            return False
+        except FileNotFoundError:
+            print("File not found. Try specifying a different path")
+            return False
 
 class MetadataUploadHandler(UploadHandler):
     pass
 
 ### Tests ###
-# process = ProcessDataUploadHandler()
-# process.setDbPathOrUrl("databases/relational.db")
-# process.pushDataToDb("data/process.json")
+process = ProcessDataUploadHandler()
+process.setDbPathOrUrl("databases/relational.db")
+process.pushDataToDb("stuff/test.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
@@ -182,12 +183,13 @@ class MetadataQueryHandler(QueryHandler):
 ### Test
 # obj = ProcessDataQueryHandler()
 # print(obj.getAllActivities())
+
 ############## MASHUP #################
 
 class BasicMashup:
     def __init__(self):
-        self.metadataQuery = [MetadataQueryHandler]
-        self.processdataQuery = [ProcessDataQueryHandler]
+        self.metadataQuery = list[MetadataQueryHandler]
+        self.processdataQuery = list[ProcessDataQueryHandler]
     def cleanMetadataHandlers() -> bool:
         pass
     def cleanProcessHandlers() -> bool:
