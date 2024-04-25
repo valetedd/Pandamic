@@ -94,6 +94,8 @@ class UploadHandler(Handler):
             print(f"{e}: input argument must be a string")
         except FileNotFoundError as f:
             print("File not found. Try specifying a different path")
+        except Exception as e:
+            print(f"{e}")
         else:
             print("Unsupported format. Only .csv or .json files can be specified")
             return False
@@ -103,19 +105,36 @@ class ProcessDataUploadHandler(UploadHandler):
     def pushDataToDb(self, json_path: str) -> bool:
 
         try:
+            # Loading data into a DataFrame
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)             
-            raw_df = njson_to_df(data) # Custom function to traverse json
-            raw_df = raw_df.map(regularize_data) # Regularizing datatypes 
-            act_df = add_hash_ids(raw_df) # Adding stable-hash internal IDs
+            act_df = njson_to_df(data) # Converting json to Dataframe in accordance to the data model
+            act_df = act_df.map(regularize_data) # Regularizing datatypes 
+            
+            # Adding stable hash column as internal IDs
+            int_ids = generate_hash_ids(act_df)
+            act_df.insert(0, "internal_ids",int_ids) 
 
-            # Selecting sub-dataframes for each type
-            db = self.getDbPathOrURL()
-            types = act_df["type"].unique()
-            for type in types:
-                sdf = act_df[act_df["type"] == type].drop(columns=["type"])
-                df_name = f"{type}Data" # table name to use fo upload
-                safe_upload(sdf, df_name, db) # uploading them to the selected db
+            # Uploading data to the selected db       
+            db = self.getDbPathOrURL()                             
+            with connect(db) as con:
+                types = act_df["type"].unique()
+                for type in types:
+                    sdf = act_df[act_df["type"] == type].drop(columns=["type"]) # dividing data by type in sub-dataframes
+                    df_name = f"{type}Data" # table name to use fo upload
+                    cur = con.cursor()
+                    cur.execute("SELECT name FROM sqlite_master WHERE type='table';") # getting existing table names in db
+                    zipped_names = cur.fetchall()
+                    table_names = [table[0] for table in zipped_names if zipped_names]
+                    if df_name in table_names:
+                        print(f"Updating table({df_name})")
+                        sdf.to_sql("temp", con, if_exists="replace", index=False)
+                        cur.execute(f"""CREATE TABLE new AS SELECT * FROM {df_name} UNION SELECT * FROM temp;""")
+                        cur.execute(f"""DROP TABLE temp;""")
+                        cur.execute(f"""DROP TABLE {df_name};""")
+                        cur.execute(f"""ALTER TABLE new RENAME TO {df_name}""")
+                    else:
+                        sdf.to_sql(df_name, con, if_exists="replace", index=False)
             print("Data succesfully uploaded to database!")
             return True
         except ValueError as e:
@@ -130,7 +149,7 @@ class MetadataUploadHandler(UploadHandler):
 
 ### Tests ###
 process = ProcessDataUploadHandler()
-process.setDbPathOrUrl("databases/relational.db")
+process.setDbPathOrUrl("stuff/test.db")
 process.pushDataToDb("stuff/test.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
@@ -232,3 +251,5 @@ class AdvancedMashup(BasicMashup):
         pass
     def getAuthorsOfObjectsAcquiredInTimeFrame(start: str, end: str):
         pass
+
+
