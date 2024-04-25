@@ -6,7 +6,7 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
     try:
         df_dict = {"type":[], "responsible institute":[], "responsible person":[],"tool":[], # dictionary of expected labels 
                     "start date":[], "end date":[], "technique":[], "object id":[]}          # based on the data model's specifications
-        expected_attr={key for key in df_dict.keys if key != "object id" or key != "type"}
+        shareded_attrs = {"responsible institute", "responsible person", "tool", "start date", "end date"}
         # Traversing the json file
         for item in json_data: # iterating over the list of dictionaries
             id = item.pop("object id")
@@ -18,8 +18,8 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
                 for attribute in (attributes := item[act_type]): # iterating over the attribute-keys of each nested dictionary
                     value = item[act_type][attribute]
                     df_dict[attribute].append(value)
-                if len(attributes) < len(expected_attr): # handling missing key cases
-                    missing_attrs = expected_attr.difference(set(attributes))
+                if len(attributes) < len(shareded_attrs): # handling missing key cases
+                    missing_attrs = shareded_attrs.difference(set(attributes))
                     for attr in missing_attrs:
                         df_dict[attr].append("")
         df = pd.DataFrame(df_dict)
