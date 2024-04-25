@@ -94,8 +94,6 @@ class UploadHandler(Handler):
             print(f"{e}: input argument must be a string")
         except FileNotFoundError as f:
             print("File not found. Try specifying a different path")
-        except Exception as e:
-            print(f"{e}")
         else:
             print("Unsupported format. Only .csv or .json files can be specified")
             return False
@@ -111,37 +109,34 @@ class ProcessDataUploadHandler(UploadHandler):
             act_df = njson_to_df(data) # Converting json to Dataframe in accordance to the data model
             act_df = act_df.map(regularize_data) # Regularizing datatypes 
             
-            # Adding stable hash column as internal IDs
-            int_ids = generate_hash_ids(act_df)
-            act_df.insert(0, "internal_ids",int_ids) 
+            # Adding column of stable hashes as internal IDs
+            int_ids = generate_hash_ids(act_df, prefix="act-")
+            act_df.insert(0, "internal_id",int_ids) 
 
             # Uploading data to the selected db       
-            db = self.getDbPathOrURL()                             
+            db = self.getDbPathOrURL()        
+            types = act_df["type"].unique()
             with connect(db) as con:
-                types = act_df["type"].unique()
                 for type in types:
                     sdf = act_df[act_df["type"] == type].drop(columns=["type"]) # dividing data by type in sub-dataframes
                     df_name = f"{type}Data" # table name to use fo upload
+                    sdf.to_sql(df_name, con, if_exists="append", index=False)
+                    print(f"{df_name} succesfully uploaded")
                     cur = con.cursor()
-                    cur.execute("SELECT name FROM sqlite_master WHERE type='table';") # getting existing table names in db
-                    zipped_names = cur.fetchall()
-                    table_names = [table[0] for table in zipped_names if zipped_names]
-                    if df_name in table_names:
-                        print(f"Updating table({df_name})")
-                        sdf.to_sql("temp", con, if_exists="replace", index=False)
-                        cur.execute(f"""CREATE TABLE new AS SELECT * FROM {df_name} UNION SELECT * FROM temp;""")
-                        cur.execute(f"""DROP TABLE temp;""")
-                        cur.execute(f"""DROP TABLE {df_name};""")
-                        cur.execute(f"""ALTER TABLE new RENAME TO {df_name}""")
-                    else:
-                        sdf.to_sql(df_name, con, if_exists="replace", index=False)
-            print("Data succesfully uploaded to database!")
+                    cur.execute(f"""DELETE FROM {df_name} WHERE rowid NOT IN 
+                                    (SELECT MIN(rowid) FROM {df_name} 
+                                    GROUP BY internal_id, responsible_institute, responsible_person, 
+                                             tool, start_date, end_date, technique, object_id);""") 
             return True
+        
         except ValueError as e:
             print(f"{e}: input argument must be a string")
             return False
         except FileNotFoundError:
             print("File not found. Try specifying a different path")
+            return False
+        except Exception as e:
+            print(f"{e}")
             return False
 
 class MetadataUploadHandler(UploadHandler):
