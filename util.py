@@ -6,7 +6,7 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
     try:
         df_dict = {"type":[], "responsible institute":[], "responsible person":[],"tool":[], # dictionary of expected labels 
                     "start date":[], "end date":[], "technique":[], "object id":[]}          # based on the data model's specifications
-        shareded_attrs = {"responsible institute", "responsible person", "tool", "start date", "end date"}
+        act_attrs = {"responsible institute", "responsible person", "tool", "start date", "end date"}
         # Traversing the json file
         for item in json_data: # iterating over the list of dictionaries
             id = item.pop("object id")
@@ -18,22 +18,24 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
                 for attribute in (attributes := item[act_type]): # iterating over the attribute-keys of each nested dictionary
                     value = item[act_type][attribute]
                     df_dict[attribute].append(value)
-                if len(attributes) < len(shareded_attrs): # handling missing key cases
-                    missing_attrs = shareded_attrs.difference(set(attributes))
+                if len(attributes) < len(act_attrs): # handling missing key cases
+                    missing_attrs = act_attrs.difference(set(attributes))
                     for attr in missing_attrs:
                         df_dict[attr].append("")
         df = pd.DataFrame(df_dict)
         df.columns = [col.replace(" ", "_") for col in df.columns]
         return df
-    except Exception as e:
+    except KeyError as e:
         print(f"{e}: json data is not well-formed")
 
-def regularize_data(x):
+def regularize_data(x : Any) -> str:
     if isinstance(x, (list, set, tuple)):
         return ", ".join(x)
     elif isinstance(x, dict):
-        values = [x[key] for key in x.keys()]
+        values = [str(x[key]) for key in x.keys()]
         return ", ".join(values)
+    elif isinstance(x, int):
+        return str(x)    
     else:
         return x
     

@@ -2,7 +2,10 @@ import pandas as pd
 from sqlite3 import connect
 import json
 from util import *
-import hashlib
+import rdflib as rdf
+from rdflib.namespace import SDO, RDF, RDFS
+from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
+import SPARQLWrapper as sw
 
 ############# ENTITIES ###############
 
@@ -147,8 +150,101 @@ class ProcessDataUploadHandler(UploadHandler):
             print(f"{e}")
             return False
 
-class MetadataUploadHandler(UploadHandler):
-    pass
+class MetadataUploadHandler(): # (i.UploadHandler):
+    
+    def pushDataToDb(self, path: str) -> bool:
+        blzgrph = SPARQLUpdateStore()
+        endpoint = "http://10.201.16.20:9999/blazegraph/sparql" # if you try this, remember to update the endpoint depending on the one set when running blzgraph
+
+        def check_yoself_befo_yo_shrek_yoself(subj, pred, obj):
+            if "http" not in obj:
+                obj = '"'+obj+'"'
+            else:
+                obj = "<"+obj+">"
+            request = sw.SPARQLWrapper(endpoint)
+            base_query = f"ASK {{ <{subj}> <{pred}> {obj} . }} "
+            request.setReturnFormat(sw.JSON)
+            request.setQuery(base_query)
+            result = request.query().convert()
+            return result['boolean']
+            
+
+
+        md_Series = pd.read_csv(path, keep_default_na=False, dtype={
+            "Id":"string","Type":"string","Title":"string","Date":"string","Author":"string","Owner":"string","Place":"string"
+        })
+        md_Series= md_Series.rename(columns={"Id":"identifier","Type":"type","Title":"name","Date":"datePublished","Author":"author","Owner":"maintainer","Place":"spatial"})
+        
+        PDM = rdf.Namespace("http://ourwebsite/") #our base URI
+        graph_to_upload=rdf.Graph() # creating the graph that i will upload
+        graph_to_upload.bind("pdm", PDM)
+        
+        dict_of_obj_uri=dict()      
+        our_obj = list(md_Series["type"].unique())
+        our_obj.extend(list(md_Series["maintainer"].unique())) 
+        our_obj.extend(list(md_Series["spatial"].unique())) #creating a list with all the unique values from the DF
+        for item in our_obj:
+            url_friendly_name=item.replace(" ", "_")
+            dict_of_obj_uri[item]=PDM+url_friendly_name # <-- adding to the dictionary each item with its own
+            # generated URI.
+
+        authors_viaf=dict() # I had to take them from VIAF or ULAN
+        
+        for idx, row in md_Series.iterrows():
+            # Internal_ID="ID"+str(idx)
+            subj = PDM + row["identifier"] # generating a specific URI for each item
+            
+            for pred, obj in row.items():
+                if pred=="author":
+                    obj_list=obj.split(" (")
+                    name=obj_list[0] #assigning the actual name to this variable
+                    if len(name)==0:
+                        pass
+                    else:
+                        author_ID=obj_list[1]
+                        author_ID=author_ID[0:-1]
+                        if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
+                            author_url = rdf.URIRef("http://viaf.org/" + author_ID.replace(":","/").lower())
+                        elif "ULAN" in author_ID:
+                            author_url = rdf.URIRef("http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower())
+                        else:
+                            author_url = rdf.URIRef(PDM + author_ID.replace(":","/").lower())
+                        if name not in authors_viaf: # adding the author to the dictionary if they're not present
+                            authors_viaf[name] = author_ID
+                        # aut = authors_viaf[name]
+                        
+                        if not(check_yoself_befo_yo_shrek_yoself(author_url, SDO.identifier, author_ID)):
+                            graph_to_upload.add((rdf.URIRef(author_url),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
+
+                        if not(check_yoself_befo_yo_shrek_yoself(subj, SDO.author, author_url)):
+                            graph_to_upload.add((rdf.URIRef(subj),SDO.author,rdf.URIRef(author_url)))          # URI of the book-URI of the author
+
+                        if not(check_yoself_befo_yo_shrek_yoself(author_url, SDO.givenName, name)):
+                            graph_to_upload.add((rdf.URIRef(author_url),SDO.givenName,rdf.Literal(name)))  # URI of the author - its name
+                else:
+                    if pred == "type":
+                        if not(check_yoself_befo_yo_shrek_yoself(subj, RDF.type, dict_of_obj_uri[obj])):
+                            graph_to_upload.add((rdf.URIRef(subj),RDF.type,rdf.URIRef(dict_of_obj_uri[obj]))) # 2 triples, book's URI - type's URI,
+                        
+                        if not(check_yoself_befo_yo_shrek_yoself(dict_of_obj_uri[obj], RDFS.label, obj)):
+                            graph_to_upload.add((rdf.URIRef(dict_of_obj_uri[obj]),RDFS.label,rdf.Literal(obj)))  # type's URI - type's name. Since
+                        # graphs don't allow redundancy, only one of the second triple will be added for each type.
+
+                    elif pred == "maintainer" or pred=="spatial":
+                        if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, dict_of_obj_uri[obj])):
+                            graph_to_upload.add((rdf.URIRef(subj), rdf.URIRef(SDO+pred), rdf.URIRef(dict_of_obj_uri[obj]))) #Same concept for the other 2, but
+                        
+                        if not(check_yoself_befo_yo_shrek_yoself(dict_of_obj_uri[obj], RDFS.label, obj)):
+                            graph_to_upload.add((rdf.URIRef(dict_of_obj_uri[obj]), RDFS.label, rdf.Literal(obj)))  # they use SDO instead of RDF
+                     
+                    else:
+                        if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
+                            graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
+        
+        blzgrph.open((endpoint,endpoint))
+        for sent in graph_to_upload.triples((None,None,None)):
+            blzgrph.add(sent)
+        blzgrph.close()
 
 ### Tests ###
 process = ProcessDataUploadHandler()
@@ -220,39 +316,42 @@ class BasicMashup:
     
     def cleanProcessHandlers(self) -> bool:
         self.processdataQuery.clear()
-        print("ProcessData handler list succesfully cleared")
+        print("ProcessData handlers-list succesfully cleared")
         return True
     
     def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool:
         try:
             self.metadataQuery.append(handler)
-            print("MetaData handler succesfully added to the handler list")
+            print("Handler succesfully added to the MetaData handlers-list")
             return True
         except TypeError:
             print("Please specify a handler to be added")
+            return False
 
     def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:
         try:
             self.processdataQuery.append(handler)
-            print("ProcessData handler succesfully added to the handler list")
+            print("Handler succesfully added to the ProcessData handlers-list")
             return True
         except TypeError:
             print("Please specify a handler to be added")
+            return False
 
-    def getEntityById(id: str):
+    def getEntityById(self, id: str):
         pass
-    def getAllPeople() -> list[IdentifiableEntity]:
+    def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
-    def getAllCulturalHeritageObjects() -> list[CulturalHeritageObjects]:
+    def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObjects]:
         pass
-    def getAuthorsOfCulturalHeritageObjects(objectId: str) -> list[Person]:
+    def getAuthorsOfCulturalHeritageObjects(self, objectId: str) -> list[Person]:
         pass
-    def getCulturalHeritageObjectsAuthoredBy(personalId: str) -> list[CulturalHeritageObjects]:
+    def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObjects]:
         pass
     def getAllActivities(self) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            for row, _ in handler.iterrows():
+            query_df = handler.getAllActivities()
+            for _, row in query_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -275,27 +374,176 @@ class BasicMashup:
         self.cleanProcessHandlers()
         return result
 
-    def getActivitiesByResponsibleInstitution(partialName: str) -> list[Activity]:
-        pass
-    def getActivitiesByResponsiblePerson(partialName: str) -> list[Activity]:
-        pass
-    def getActivitiesUsingTool(partialName: str) -> list[Activity]:
-        pass
-    def getActivitiesStartedAfter(date: str) -> list[Activity]:
-        pass
-    def getActivitiesEndedAfter(date: str) -> list[Activity]:
-        pass
-    def getAcquisitionByTechnique(partialName: str) -> list[Acquisition]:
-        pass
+    def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getActivitiesByResponsibleInstitution(partialName)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+    
+    def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getActivitiesByResponsiblePerson(partialName)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+    
+    def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getActivitiesUsingTool(partialName)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+    
+    def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getActivitiesStartedAfter(date)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+    
+    def getActivitiesEndedAfter(self, date: str) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getActivitiesEndedAfter(date)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+    
+    def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
+        result = []
+        for handler in self.processdataQuery:
+            query_df = handler.getAcquisitionByTechnique(partialName)
+            for _, row in query_df.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
 
 class AdvancedMashup(BasicMashup):
-    def getActivitiesOnObjectsAuthoredBy(personId: str):
+    def getActivitiesOnObjectsAuthoredBy(self, personId: str):
         pass
-    def getObjectsHandledByResponsiblePerson(partialName: str):
+    def getObjectsHandledByResponsiblePerson(self, partialName: str):
         pass
-    def getObjectsHandledByResponsibleInstitution(partialName: str):
+    def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         pass
-    def getAuthorsOfObjectsAcquiredInTimeFrame(start: str, end: str):
+    def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
 
 
