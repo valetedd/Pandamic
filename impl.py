@@ -73,11 +73,12 @@ class Handler(object):
         except ValueError as e:
             print(f"{e}: input argument must be a string")
             return False
+        except TypeError:
+            print("Please specify a path or URL")
         
 class UploadHandler(Handler):
 
     def pushDataToDb(self, path: str) -> bool:
-        
         try:
             db = self.getDbPathOrURL()
             if ".csv" in path:
@@ -90,12 +91,17 @@ class UploadHandler(Handler):
                 pro.setDbPathOrUrl(db)
                 pro.pushDataToDb(path)
                 return True
+            else:
+                print("Unsupported format. Only .csv or .json files can be specified")
+                return False
         except ValueError as e:
             print(f"{e}: input argument must be a string")
-        except FileNotFoundError as f:
+            return False
+        except FileNotFoundError:
             print("File not found. Try specifying a different path")
-        else:
-            print("Unsupported format. Only .csv or .json files can be specified")
+            return False
+        except TypeError:
+            print("Please specify a path or URL")
             return False
             
 class ProcessDataUploadHandler(UploadHandler):
@@ -125,8 +131,7 @@ class ProcessDataUploadHandler(UploadHandler):
                     cur = con.cursor()
                     cur.execute(f"""DELETE FROM {df_name} WHERE rowid NOT IN 
                                     (SELECT MIN(rowid) FROM {df_name} 
-                                    GROUP BY internal_id, responsible_institute, responsible_person, 
-                                             tool, start_date, end_date, technique, object_id);""") 
+                                    GROUP BY internal_id);""") 
             return True
         
         except ValueError as e:
@@ -134,6 +139,9 @@ class ProcessDataUploadHandler(UploadHandler):
             return False
         except FileNotFoundError:
             print("File not found. Try specifying a different path")
+            return False
+        except TypeError:
+            print("Please specify the path of the JSON file you want to upload")
             return False
         except Exception as e:
             print(f"{e}")
@@ -204,37 +212,80 @@ class BasicMashup:
     def __init__(self):
         self.metadataQuery = list[MetadataQueryHandler]
         self.processdataQuery = list[ProcessDataQueryHandler]
-    def cleanMetadataHandlers() -> bool:
-        pass
-    def cleanProcessHandlers() -> bool:
-        pass
-    def addMetadataHandler(handler: MetadataQueryHandler) -> bool:
-        pass
-    def addProcessHandler(handler: ProcessDataQueryHandler) -> bool:
-        pass
+
+    def cleanMetadataHandlers(self) -> bool:
+        self.metadataQuery.clear()
+        print("MetaData handler list succesfully cleared")
+        return True
+    
+    def cleanProcessHandlers(self) -> bool:
+        self.processdataQuery.clear()
+        print("ProcessData handler list succesfully cleared")
+        return True
+    
+    def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool:
+        try:
+            self.metadataQuery.append(handler)
+            print("MetaData handler succesfully added to the handler list")
+            return True
+        except TypeError:
+            print("Please specify a handler to be added")
+
+    def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:
+        try:
+            self.processdataQuery.append(handler)
+            print("ProcessData handler succesfully added to the handler list")
+            return True
+        except TypeError:
+            print("Please specify a handler to be added")
+
     def getEntityById(id: str):
         pass
-    def getAllPeople():
+    def getAllPeople() -> list[IdentifiableEntity]:
         pass
-    def getAllCulturalHeritageObjects():
+    def getAllCulturalHeritageObjects() -> list[CulturalHeritageObjects]:
         pass
-    def getAuthorsOfCulturalHeritageObjects(objectId: str):
+    def getAuthorsOfCulturalHeritageObjects(objectId: str) -> list[Person]:
         pass
-    def getCulturalHeritageObjectsAuthoredBy(personalId: str):
+    def getCulturalHeritageObjectsAuthoredBy(personalId: str) -> list[CulturalHeritageObjects]:
         pass
-    def getAllActivities():
+    def getAllActivities(self) -> list[Activity]:
+        result = []
+        for handler in self.processdataQuery:
+            for row, _ in handler.iterrows():
+                curr_type = row["type"] 
+                if curr_type == "acquisition":
+                    obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
+                                person=row["responsible person"], tool=row["tool"], start=row["start date"], 
+                                end=row["end date"])
+                elif curr_type == "processing":
+                    obj = Processing(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "modelling":
+                    obj = Modelling(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                elif curr_type == "optimising":
+                    obj = Optimising(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                else:
+                    obj = Exporting(institute=row["responsible institute"], person=row["responsible person"], 
+                                     tool=row["tool"], start=row["start date"], end=row["end date"])
+                result.append(obj)
+        
+        self.cleanProcessHandlers()
+        return result
+
+    def getActivitiesByResponsibleInstitution(partialName: str) -> list[Activity]:
         pass
-    def getActivitiesByResponsibleInstitution(partialName: str):
+    def getActivitiesByResponsiblePerson(partialName: str) -> list[Activity]:
         pass
-    def getActivitiesByResponsiblePerson(partialName: str):
+    def getActivitiesUsingTool(partialName: str) -> list[Activity]:
         pass
-    def getActivitiesUsingTool(partialName: str):
+    def getActivitiesStartedAfter(date: str) -> list[Activity]:
         pass
-    def getActivitiesStartedAfter(date: str):
+    def getActivitiesEndedAfter(date: str) -> list[Activity]:
         pass
-    def getActivitiesEndedAfter(date: str):
-        pass
-    def getAcquisitionByTechnique(partialName: str):
+    def getAcquisitionByTechnique(partialName: str) -> list[Acquisition]:
         pass
 
 class AdvancedMashup(BasicMashup):
