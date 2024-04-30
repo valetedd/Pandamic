@@ -127,8 +127,10 @@ class ProcessDataUploadHandler(UploadHandler):
             types = act_df["type"].unique()
             with connect(db) as con:
                 for type in types:
-                    sdf = act_df[act_df["type"] == type].drop(columns=["type"]) # dividing data by type in sub-dataframes
-                    df_name = f"{type}Data" # table name to use fo upload
+                    sdf = act_df[act_df["type"] == type] # dividing data by type in sub-dataframe   
+                    if type != "acquisition":
+                        sdf = sdf.drop("technique", axis=1)
+                    df_name = f"{type}Data" # table name to use in the db
                     sdf.to_sql(df_name, con, if_exists="append", index=False)
                     print(f"{df_name} succesfully uploaded")
                     cur = con.cursor()
@@ -150,11 +152,11 @@ class ProcessDataUploadHandler(UploadHandler):
             print(f"{e}")
             return False
 
-class MetadataUploadHandler(): # (i.UploadHandler):
+class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):
     
-    def pushDataToDb(self, path: str) -> bool:
+    def pushDataToDb(self, path : str) -> bool:
         blzgrph = SPARQLUpdateStore()
-        endpoint = "http://10.201.16.20:9999/blazegraph/sparql" # if you try this, remember to update the endpoint depending on the one set when running blzgraph
+        endpoint = self.getDbPathOrURL() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
 
         def check_yoself_befo_yo_shrek_yoself(subj, pred, obj):
             if "http" not in obj:
@@ -245,11 +247,12 @@ class MetadataUploadHandler(): # (i.UploadHandler):
         for sent in graph_to_upload.triples((None,None,None)):
             blzgrph.add(sent)
         blzgrph.close()
+        return True
 
 ### Tests ###
 process = ProcessDataUploadHandler()
-process.setDbPathOrUrl("stuff/test.db")
-process.pushDataToDb("stuff/test.json")
+process.setDbPathOrUrl("databases/relational.db")
+process.pushDataToDb("data/process.json")
 # obj = UploadHandler()
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
@@ -286,17 +289,71 @@ class ProcessDataQueryHandler(QueryHandler):
     def getAcquisitionsByTechnique(partialName: str) -> pd.DataFrame:
         pass
 
-class MetadataQueryHandler(QueryHandler):
+class MetadataQueryHandler(UploadHandler):
+    def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
+        self.endpoint = self.getDbPathOrURL()
+        self.request = sw.SPARQLWrapper(self.endpoint)
+        self.request.setReturnFormat(sw.JSON)
+    
+    # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
+    def getAllPeople(self) -> pd.DataFrame:
+        self.request.setQuery("""
+        SELECT ?name ?id ?uri
+        WHERE { ?uri <https://schema.org/givenName> ?name ;
+                     <https://schema.org/identifier> ?id . }
+        """)
+        self.result = self.request.query().convert()
+        self.result = self.result["results"]["bindings"]
+        self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
+                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
+        return self.result
 
-    def getAllPeople() -> pd.DataFrame:
-        pass
-    def getAllCulturalHeritageObjects() -> pd.DataFrame:
-        pass
-    def getAuthorsOfCulturalHeritageObject(objectId: str) -> pd.DataFrame:
-        pass
-
-    def getCulturalHeritageObjectsAuthoredBy(authorId: str) -> pd.DataFrame:
-        pass
+    # Step 3. do it again
+    def getAllCulturalHeritageObject(self) -> pd.DataFrame:
+        self.request.setQuery("""
+        SELECT ?obj ?type ?id ?uri
+        WHERE { ?uri <https://schema.org/name> ?obj ;
+                     rdf:type ?typeUri ;
+                     <https://schema.org/identifier> ?id .
+                ?typeUri rdfs:label ?type . }
+        """)
+        self.result = self.request.query().convert()
+        self.result = self.result["results"]["bindings"]
+        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
+                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
+        return self.result
+    
+    # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
+    def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
+        self.request.setQuery(f"""
+        SELECT ?name ?id ?uri
+        WHERE {{ ?uri <https://schema.org/givenName> ?name ;
+                     <https://schema.org/identifier> ?id .
+                 ?objUri <https://schema.org/author> ?uri;
+                         <https://schema.org/identifier> '{objectId}' . }}
+        """)
+        self.result = self.request.query().convert()
+        self.result = self.result["results"]["bindings"]
+        self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
+                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
+        return self.result
+    
+    # Step 5. someone stop me (I've done it again)
+    def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
+        self.request.setQuery(f"""
+        SELECT ?obj ?type ?id ?uri
+        WHERE {{ ?uri <https://schema.org/name> ?obj ;
+                     rdf:type ?typeUri ;
+                     <https://schema.org/identifier> ?id ;
+                     <https://schema.org/author> ?persUri .
+                 ?typeUri rdfs:label ?type .
+                 ?persUri <https://schema.org/givenName> '{personId}' . }}
+        """)
+        self.result = self.request.query().convert()
+        self.result = self.result["results"]["bindings"]
+        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
+                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
+        return self.result
 
 ### Test
 # obj = ProcessDataQueryHandler()
@@ -337,7 +394,7 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def getEntityById(self, id: str):
+    def getEntityById(self, id: str) -> list[IdentifiableEntity] | None:
         pass
     def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
@@ -350,8 +407,8 @@ class BasicMashup:
     def getAllActivities(self) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getAllActivities()
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getAllActivities()
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -377,8 +434,8 @@ class BasicMashup:
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getActivitiesByResponsibleInstitution(partialName)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getActivitiesByResponsibleInstitution(partialName)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -404,8 +461,8 @@ class BasicMashup:
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getActivitiesByResponsiblePerson(partialName)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getActivitiesByResponsiblePerson(partialName)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -431,8 +488,8 @@ class BasicMashup:
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getActivitiesUsingTool(partialName)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getActivitiesUsingTool(partialName)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -458,8 +515,8 @@ class BasicMashup:
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getActivitiesStartedAfter(date)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getActivitiesStartedAfter(date)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -485,8 +542,8 @@ class BasicMashup:
     def getActivitiesEndedAfter(self, date: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getActivitiesEndedAfter(date)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getActivitiesEndedAfter(date)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
@@ -512,8 +569,8 @@ class BasicMashup:
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
         for handler in self.processdataQuery:
-            query_df = handler.getAcquisitionByTechnique(partialName)
-            for _, row in query_df.iterrows():
+            pquery_df = handler.getAcquisitionByTechnique(partialName)
+            for _, row in pquery_df.iterrows():
                 curr_type = row["type"] 
                 if curr_type == "acquisition":
                     obj = Acquisition(institute=row["responsible institute"], technique=row["technique"], 
