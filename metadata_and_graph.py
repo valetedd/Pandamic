@@ -98,10 +98,13 @@ class MetadataUploadHandler(): # (i.UploadHandler):
                     else:
                         if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
                             graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
-        
-        blzgrph.open((endpoint,endpoint))
-        for sent in graph_to_upload.triples((None,None,None)):
-            blzgrph.add(sent)
-        blzgrph.close()
+        try:
+            blzgrph.open((endpoint,endpoint))
+            for sent in graph_to_upload.triples((None,None,None)):
+                blzgrph.add(sent)
+            blzgrph.close()
+            print(True)
+        except:
+            print(False)
 
 MetadataUploadHandler()

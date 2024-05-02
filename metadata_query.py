@@ -20,21 +20,21 @@ class MetadataQueryHandler():
         self.request.setQuery("""
         SELECT ?name ?id ?uri
         WHERE { ?uri <https://schema.org/givenName> ?name ;
-                     <https://schema.org/identifier> ?id . }
+                    <https://schema.org/identifier> ?id . }
         """)
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
                           "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
-        print(self.result_df)
+        print(self.result_df, True)
 
     # Step 3. do it again
     def getAllCulturalHeritageObject(self):
         self.request.setQuery("""
         SELECT ?obj ?type ?id ?uri
         WHERE { ?uri <https://schema.org/name> ?obj ;
-                     rdf:type ?typeUri ;
-                     <https://schema.org/identifier> ?id .
+                    rdf:type ?typeUri ;
+                    <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type . }
         """)
         self.result = self.request.query().convert()
