@@ -9,13 +9,90 @@ import SPARQLWrapper as sw
 
 ############# ENTITIES ###############
 
+class IdentifiableEntity():
+    def __init__(self, id:str):
+        self.id = id
+    
+    def getId(self):
+        return self.id
+
+
+class Person(IdentifiableEntity):
+    def __init__(self, id:str, name:str):
+        super().__init__(id)
+        self.name = name
+
+    def getName(self):
+        return self.name
+    
+class CulturalHeritageObject(IdentifiableEntity):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id)
+        self.title = title
+        self.date = date
+        self.owner = owner
+        self.place = place
+        self.authors = hasAuthor
+    
+    def getTitle(self):
+        return self.title
+    def getDate(self):
+        return self.date
+    def getOwner(self):
+        return self.owner
+    def getPlace(self):
+        return self.place
+    def getAuthors(self):
+        return self.authors
+
+class NauticalChart(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class ManuscriptPlace(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class ManuscriptVolume(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class PrintedVolume(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class PrintedMaterial(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class Herbarium(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class Specimen(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class Painting(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
+class Model(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+        
+class Map(CulturalHeritageObject):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+        super().__init__(id, title, date, owner, place, hasAuthor)
+
 class Activity():
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
+    def __init__(self, institute:str, person: str|None, tool: str|None, start: str|None, end: str|None, refersTo: str):
         self.institute = institute
         self.person = person
         self.tool = tool
         self.start = start
         self.end = end
+        self.refersTo = refersTo
     
     def getResponsibleInstitute(self):
         return self.institute
@@ -36,28 +113,28 @@ class Activity():
         pass
 
 class Acquisition(Activity):
-    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None):
+    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
         self.technique = technique
-        super().__init__(institute, person, tool, start, end)
+        super().__init__(institute, person, tool, start, end, refersTo)
         
     def getTechnique(self):
         return self.technique
     
 class Processing(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
-        super().__init__(institute, person, tool, start, end)
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+        super().__init__(institute, person, tool, start, end, refersTo)
 
 class Modelling(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
-        super().__init__(institute, person, tool, start, end)
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+        super().__init__(institute, person, tool, start, end, refersTo)
 
 class Optimising(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
-        super().__init__(institute, person, tool, start, end)
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+        super().__init__(institute, person, tool, start, end, refersTo)
 
 class Exporting(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None):
-        super().__init__(institute, person, tool, start, end)
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+        super().__init__(institute, person, tool, start, end, refersTo)
 
 ################## UPLOAD MANAGEMENT ######################
         
@@ -398,11 +475,11 @@ class BasicMashup:
         pass
     def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
-    def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObjects]:
+    def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObject]:
         pass
     def getAuthorsOfCulturalHeritageObjects(self, objectId: str) -> list[Person]:
         pass
-    def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObjects]:
+    def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObject]:
         pass
     def getAllActivities(self) -> list[Activity]:
         result = []
