@@ -26,7 +26,7 @@ class Person(IdentifiableEntity):
         return self.name
     
 class CulturalHeritageObject(IdentifiableEntity):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
+    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|str|None):
         super().__init__(id)
         self.title = title
         self.date = date
