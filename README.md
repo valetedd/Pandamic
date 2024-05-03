@@ -3,6 +3,8 @@
 ProcessDataUploadHandler: complete 24/04
 Further test to be performed
 
+BlazeGraph command : java -server -Xmx4g -jar blazegraph.jar
+
 
 
 
