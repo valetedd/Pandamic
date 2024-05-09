@@ -384,7 +384,7 @@ class ProcessDataQueryHandler(QueryHandler):
     def getAcquisitionsByTechnique(partialName: str) -> pd.DataFrame:
         pass
 
-class MetadataQueryHandler(UploadHandler):
+class MetadataQueryHandler(QueryHandler):
     def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
         self.endpoint = self.getDbPathOrURL()
         self.request = sw.SPARQLWrapper(self.endpoint)
