@@ -401,10 +401,10 @@ class MetadataQueryHandler(UploadHandler):
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
                           "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
-        return self.result
+        return self.result_df
 
     # Step 3. do it again
-    def getAllCulturalHeritageObject(self) -> pd.DataFrame:
+    def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
         self.request.setQuery("""
         SELECT ?obj ?type ?id ?uri
         WHERE { ?uri <https://schema.org/name> ?obj ;
@@ -416,7 +416,7 @@ class MetadataQueryHandler(UploadHandler):
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
                                        "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
-        return self.result
+        return self.result_df
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
@@ -431,7 +431,7 @@ class MetadataQueryHandler(UploadHandler):
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
                           "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
-        return self.result
+        return self.result_df
     
     # Step 5. someone stop me (I've done it again)
     def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
@@ -448,7 +448,7 @@ class MetadataQueryHandler(UploadHandler):
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
                                        "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
-        return self.result
+        return self.result_df
 
 ### Test
 # obj = ProcessDataQueryHandler()
@@ -738,7 +738,15 @@ class AdvancedMashup(BasicMashup): # Prototype
     def getObjectsHandledByResponsiblePerson(self, partialName: str):
         pass
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
-        pass
+        try:
+            if len(self.processdataQuery) == 0:
+                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                return []
+            if len(self.metadataQuery) == 0:
+                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                return []
+        except:
+            pass
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
 
