@@ -724,14 +724,14 @@ class AdvancedMashup(BasicMashup): # Prototype
                 return []
         except:
             try:
-            if len(self.processdataQuery) == 0:
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
-                return []
-            if len(self.metadataQuery) == 0:
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
-                return []
-        except:
-            pass
+                if len(self.processdataQuery) == 0:
+                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                    return []
+                if len(self.metadataQuery) == 0:
+                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                    return []
+            except:
+                pass
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
 
