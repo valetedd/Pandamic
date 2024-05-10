@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlite3 import connect, OperationalError
+from sqlite3 import connect, OperationalError, OperationalError
 import json
 from util import *
 import rdflib as rdf
@@ -109,7 +109,6 @@ class Activity():
     def getEndDate(self):
         return self.end
     
-    
 class Acquisition(Activity):
     def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
         self.technique = technique
@@ -206,16 +205,12 @@ class ProcessDataUploadHandler(UploadHandler):
             
             # Adding column of stable hashes as internal IDs
             int_ids = hash_ids_for_df(act_df, prefix="act-")
-            int_ids = hash_ids_for_df(act_df, prefix="act-")
             act_df.insert(0, "internal_id",int_ids) 
 
             # Uploading data to the selected db       
             db = self.getDbPathOrURL()        
             types = act_df["type"].unique()
             with connect(db) as con:
-                for t  in types:
-                    sdf = act_df[act_df["type"] == t ] # dividing data in sub-dataframes by type   
-                    df_name = f"{t}Data" # table name to use in the db
                 for t  in types:
                     sdf = act_df[act_df["type"] == t ] # dividing data in sub-dataframes by type   
                     df_name = f"{t}Data" # table name to use in the db
@@ -409,7 +404,7 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
     # Step 3. do it again
-    def getAllCulturalHeritageObjectss(self) -> pd.DataFrame:
+    def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
         self.request.setQuery("""
         SELECT ?obj ?type ?id ?uri
         WHERE { ?uri <https://schema.org/name> ?obj ;
@@ -721,6 +716,14 @@ class AdvancedMashup(BasicMashup): # Prototype
         pass
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
+            if len(self.processdataQuery) == 0:
+                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                return []
+            if len(self.metadataQuery) == 0:
+                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                return []
+        except:
+            try:
             if len(self.processdataQuery) == 0:
                 print("No MetadataQueryHandler set for the mashup process. Please add at least one")
                 return []
