@@ -39,7 +39,7 @@ def regularize_data(x : Any) -> str:
     else:
         return x
     
-def generate_hash_ids(df: pd.DataFrame, prefix: str) -> list[str]:
+def hash_ids_for_df (df: pd.DataFrame, prefix: str) -> list[str]:
     int_ids = []
     for row in df.itertuples(index=False):
         algorithm = hashlib.sha256()
