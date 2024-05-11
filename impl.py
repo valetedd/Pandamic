@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlite3 import connect, OperationalError
+from sqlite3 import connect, OperationalError, OperationalError
 import json
 from util import *
 import rdflib as rdf
@@ -479,12 +479,12 @@ class BasicMashup:
 
     def cleanMetadataHandlers(self) -> bool:
         self.metadataQuery.clear()
-        print("MetaData handler list succesfully cleared")
+        print("MetaData handlers succesfully reset")
         return True
     
     def cleanProcessHandlers(self) -> bool:
         self.processdataQuery.clear()
-        print("ProcessData handlers-list succesfully cleared")
+        print("ProcessData handlers succesfully reset")
         return True
     
     def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool:
@@ -511,7 +511,7 @@ class BasicMashup:
         pass
     def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObject]:
         pass
-    def getAuthorsOfCulturalHeritageObjects(self, objectId: str) -> list[Person]:
+    def getAuthorsOfCulturalHeritageObject(self, objectId: str) -> list[Person]:
         pass
     def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObject]:
         pass
@@ -524,8 +524,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -540,7 +540,6 @@ class BasicMashup:
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
 
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
@@ -552,8 +551,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -568,7 +567,6 @@ class BasicMashup:
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
     
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
@@ -580,8 +578,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -596,7 +594,6 @@ class BasicMashup:
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
     
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
@@ -608,8 +605,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -623,8 +620,7 @@ class BasicMashup:
                         obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
-        
-        self.cleanProcessHandlers()
+    
         return result
     
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
@@ -636,8 +632,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -652,7 +648,6 @@ class BasicMashup:
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
     
     def getActivitiesEndedAfter(self, date: str) -> list[Activity]:
@@ -664,8 +659,8 @@ class BasicMashup:
                 match curr_type: 
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -680,7 +675,6 @@ class BasicMashup:
                                         tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
     
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
@@ -688,42 +682,26 @@ class BasicMashup:
         for handler in self.processdataQuery:
             pquery_df = handler.getAcquisitionByTechnique(partialName)
             for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type:
-                    case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
+                obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
                                             person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
                                             end=row["end_date"], refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
         
-        self.cleanProcessHandlers()
         return result
 
 class AdvancedMashup(BasicMashup): # Prototype
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if len(self.processdataQuery) == 0:
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                print("No ProcessdataQueryHandler was specified for the mashup process. Please add at least one")
                 return []
             if len(self.metadataQuery) == 0:
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                print("No MetadataQueryHandler was specified for the mashup process. Please add at least one")
                 return []
             mdf_list = [m_handler.getCulturalHeritageObjectsAuthoredBy(personId) for m_handler in self.metadataQuery]
             pdf_list = [p_handler.getAllActivities() for p_handler in self.processdataQuery]
-            m_conc_df = pd.concat(mdf_list, join="inner", ignore_index=True) # maybe controlling if the list is > 1?
-            p_conc_df = pd.concat(pdf_list, join="inner", ignore_index=True)
+            m_conc_df = pd.concat(mdf_list, join="outer", ignore_index=True) 
+            p_conc_df = pd.concat(pdf_list, join="outer", ignore_index=True)
             final_df = p_conc_df.merge(m_conc_df, how="left", left_on="object_id", right_on="Id")
             result = []
             for _, row in final_df.iterrows():
@@ -731,8 +709,8 @@ class AdvancedMashup(BasicMashup): # Prototype
                 match curr_type:
                     case "acquisition":
                         obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
+                                                    end=row["end_date"], refersTo=row["object_id"])
                     case "processing":
                         obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
                                             tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
@@ -746,11 +724,10 @@ class AdvancedMashup(BasicMashup): # Prototype
                         obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
                                             tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
                 result.append(obj)
-
-                self.cleanMetadataHandlers()
-                self.cleanProcessHandlers()
+                
                 return result
-        except:
+        except Exception as e:
+            print(f"{e}")
             return []
     def getObjectsHandledByResponsiblePerson(self, partialName: str):
         pass
@@ -763,7 +740,15 @@ class AdvancedMashup(BasicMashup): # Prototype
                 print("No MetadataQueryHandler set for the mashup process. Please add at least one")
                 return []
         except:
-            pass
+            try:
+                if len(self.processdataQuery) == 0:
+                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                    return []
+                if len(self.metadataQuery) == 0:
+                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                    return []
+            except:
+                pass
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
 
