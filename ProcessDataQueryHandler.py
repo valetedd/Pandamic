@@ -39,10 +39,11 @@ class ProcessDataQueryHandler(Handler):
                         SELECT * FROM optimisingData UNION
                         SELECT * FROM exportingData""")
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
     
     def getActivitiesByResponsibleInstitution(self, input_string: str) -> pd.DataFrame:
         try:
@@ -56,10 +57,11 @@ class ProcessDataQueryHandler(Handler):
                            SELECT * FROM exportingData WHERE responsible_institute LIKE '%{input_string}%'
                             """)
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
 
     def getActivitiesByResponsiblePerson(self, input_string: str) -> pd.DataFrame:
         try:
@@ -73,10 +75,11 @@ class ProcessDataQueryHandler(Handler):
                            SELECT * FROM exportingData WHERE responsible_person LIKE '%{input_string}%'
                             """)
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
         
     def getActivitiesUsingTool(self, input_string: str) -> pd.DataFrame:
         try:
@@ -90,10 +93,11 @@ class ProcessDataQueryHandler(Handler):
                            SELECT * FROM exportingData WHERE tool LIKE '%{input_string}%'
                             """)
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
         
     def getActivitiesStartedAfter(self, input_date: str) -> pd.DataFrame:
         try:
@@ -111,10 +115,11 @@ class ProcessDataQueryHandler(Handler):
                             UNION
                             SELECT * FROM exportingData WHERE start_date >= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
 
     def getActivitiesEndedBefore(self, input_date: str) -> pd.DataFrame:
         try:
@@ -132,10 +137,11 @@ class ProcessDataQueryHandler(Handler):
                             UNION
                             SELECT * FROM exportingData WHERE end_date <= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
         
     def getAcquisitionsByTechnique(self, input_string: str) -> pd.DataFrame:
         try:
@@ -144,10 +150,11 @@ class ProcessDataQueryHandler(Handler):
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM acquisitionData WHERE technique LIKE '%{input_string}%'")
             data = cursor.fetchall()
-            return pd.DataFrame(data)
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
-            return False
+            return pd.DataFrame()
 
 
 # test -> getAllActivities
