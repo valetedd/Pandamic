@@ -153,6 +153,7 @@ class Handler(object):
             return False
         except TypeError:
             print("Please specify a path or URL")
+            return False
 ### TESTS ###
 # h = Handler()
 # h.setDbPathOrUrl("mamma")
@@ -164,12 +165,12 @@ class UploadHandler(Handler):
     def pushDataToDb(self, path: str) -> bool:
         try:
             db = self.getDbPathOrURL()
-            if ".csv" in path:
+            if path.endswith(".csv"):
                 meta = MetadataUploadHandler()
                 meta.setDbPathOrUrl(db)
                 meta.pushDataToDb(path)
                 return True
-            elif ".json" in path:
+            elif path.endswith(".json"):
                 pro = ProcessDataUploadHandler()
                 pro.setDbPathOrUrl(db)
                 pro.pushDataToDb(path)
@@ -368,8 +369,24 @@ class QueryHandler(Handler):
 class ProcessDataQueryHandler(QueryHandler):
 
     def getAllActivities(self) -> pd.DataFrame:
-        pass
-    
+        try:    
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            cursor.execute("""SELECT * FROM acquisitionData UNION 
+                        SELECT * FROM processingData UNION
+                        SELECT * FROM modellingData UNION
+                        SELECT * FROM optimisingData UNION
+                        SELECT * FROM exportingData""")
+            data = cursor.fetchall()
+            result = pd.DataFrame(data)
+            result = result.rename(columns={0:"internal_id", 1: "type", 2:"responsible_institute", 3:"responsible_person", 
+                                    4:"tool", 5:"start_date", 6:"end_date", 7:"technique", 8:"object_id"})
+            return result
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
+
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> pd.DataFrame:
         pass
 
@@ -388,9 +405,7 @@ class ProcessDataQueryHandler(QueryHandler):
     def getAcquisitionsByTechnique(partialName: str) -> pd.DataFrame:
         pass
 
-class MetadataQueryHandler(QueryHandler):
-    def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
-        super().__init__()
+class MetadataQueryHandler(QueryHandler):    
     
     # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
     def getAllPeople(self) -> pd.DataFrame:
@@ -402,11 +417,11 @@ class MetadataQueryHandler(QueryHandler):
         WHERE { ?uri <https://schema.org/givenName> ?name ;
                      <https://schema.org/identifier> ?id . }
         """)
-        self.result = self.request.query().convert()
-        self.result = self.result["results"]["bindings"]
-        self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
-                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
-        return self.result_df
+        result = request.query().convert()
+        result = result["results"]["bindings"]
+        result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in result]), "Id": pd.Series([row["id"]["value"] for row in result]), 
+                          "Uri": pd.Series([row["uri"]["value"]] for row in result)})
+        return result_df
 
     # Step 3. do it again
     def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
@@ -459,17 +474,22 @@ class MetadataQueryHandler(QueryHandler):
                      <https://schema.org/identifier> ?id ;
                      <https://schema.org/author> ?persUri .
                  ?typeUri rdfs:label ?type .
-                 ?persUri <https://schema.org/givenName> '{personId}' . }}
+                 ?persUri <https://schema.org/identifier> '{personId}' . }}
         """)
-        self.result = self.request.query().convert()
-        self.result = self.result["results"]["bindings"]
-        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
-                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
-        return self.result_df
+        result = request.query().convert()
+        result = result["results"]["bindings"]
+        result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in result]), "Type": pd.Series([row["type"]["value"] for row in result]),
+                                       "Id": pd.Series([row["id"]["value"] for row in result]), "Uri": pd.Series([row["uri"]["value"] for row in result])}) 
+        return result_df
 
 ### Test
-# obj = ProcessDataQueryHandler()
-# print(obj.getAllActivities())
+# obj = MetadataQueryHandler()
+# print(obj.dbPathOrURL)
+# obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
+# print(obj.dbPathOrURL)
+# print(Handler.dbPathOrURL)
+# print(obj.getAllPeople())
+# print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
 ############## MASHUP #################
 
@@ -523,21 +543,46 @@ class BasicMashup:
                 curr_type: str = row["type"] 
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])                                        
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])                                        
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
         
         return result
@@ -550,21 +595,46 @@ class BasicMashup:
                 curr_type: str = row["type"] 
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
         
         return result
@@ -577,21 +647,46 @@ class BasicMashup:
                 curr_type: str = row["type"] 
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
         
         return result
@@ -604,21 +699,46 @@ class BasicMashup:
                 curr_type: str = row["type"] 
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
     
         return result
@@ -631,21 +751,46 @@ class BasicMashup:
                 curr_type: str = row["type"] 
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
         
         return result
@@ -658,21 +803,46 @@ class BasicMashup:
                 curr_type: str = row["type"]
                 match curr_type: 
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                        tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
         
         return result
@@ -682,14 +852,19 @@ class BasicMashup:
         for handler in self.processdataQuery:
             pquery_df = handler.getAcquisitionByTechnique(partialName)
             for _, row in pquery_df.iterrows():
-                obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                            person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                            end=row["end_date"], refersTo=row["object_id"])
+                obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
                 result.append(obj)
         
         return result
 
-class AdvancedMashup(BasicMashup): # Prototype
+class AdvancedMashup(BasicMashup): 
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if len(self.processdataQuery) == 0:
@@ -701,34 +876,64 @@ class AdvancedMashup(BasicMashup): # Prototype
             mdf_list = [m_handler.getCulturalHeritageObjectsAuthoredBy(personId) for m_handler in self.metadataQuery]
             pdf_list = [p_handler.getAllActivities() for p_handler in self.processdataQuery]
             m_conc_df = pd.concat(mdf_list, join="outer", ignore_index=True) 
+            # print(f"MQlist concatenated:\n{m_conc_df}")
             p_conc_df = pd.concat(pdf_list, join="outer", ignore_index=True)
-            final_df = p_conc_df.merge(m_conc_df, how="left", left_on="object_id", right_on="Id")
+            # print(f"PQlist concatenated:\n{p_conc_df}")
+            final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
+            # print(f"Merged df:\n{final_df.head(20)}")
             result = []
             for _, row in final_df.iterrows():
                 curr_type: str = row["type"] 
                 match curr_type:
                     case "acquisition":
-                        obj = Acquisition(institute=row["responsible_institute"], technique=row["technique"], 
-                                                    person=row["responsible_person"], tool=row["tool"], start=row["start_date"], 
-                                                    end=row["end_date"], refersTo=row["object_id"])
+                        obj = Acquisition(
+                                        institute=row["responsible_institute"], 
+                                        technique=row["technique"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "processing":
-                        obj = Processing(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                            tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Processing(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "modelling":
-                        obj = Modelling(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                            tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Modelling(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "optimising":
-                        obj = Optimising(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                            tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Optimising(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                     case "exporting":
-                        obj = Exporting(institute=row["responsible_institute"], person=row["responsible_person"], 
-                                            tool=row["tool"], start=row["start_date"], end=row["end_date"], refersTo=row["object_id"])
+                        obj = Exporting(
+                                        institute=row["responsible_institute"], 
+                                        person=row["responsible_person"], 
+                                        tool=row["tool"], 
+                                        start=row["start_date"], 
+                                        end=row["end_date"], 
+                                        refersTo=row["object_id"])
                 result.append(obj)
-                
-                return result
+            if result:
+                print_attributes(result)    
+            return result
         except Exception as e:
             print(f"{e}")
             return []
+
     def getObjectsHandledByResponsiblePerson(self, partialName: str):
         pass
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
