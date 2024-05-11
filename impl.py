@@ -7,6 +7,7 @@ from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
 from urllib.parse import quote, urlencode, quote_plus
+import datetime
 
 ############# ENTITIES ###############
 
@@ -379,33 +380,126 @@ class ProcessDataQueryHandler(QueryHandler):
                         SELECT * FROM optimisingData UNION
                         SELECT * FROM exportingData""")
             data = cursor.fetchall()
-            result = pd.DataFrame(data)
-            result = result.rename(columns={0:"internal_id", 1: "type", 2:"responsible_institute", 3:"responsible_person", 
-                                    4:"tool", 5:"start_date", 6:"end_date", 7:"technique", 8:"object_id"})
-            return result
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
+    
+    def getActivitiesByResponsibleInstitution(self, input_string: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            cursor.execute(f"""SELECT * FROM acquisitionData WHERE responsible_institute LIKE '%{input_string}%' UNION
+                           SELECT * FROM processingData WHERE responsible_institute LIKE '%{input_string}%' UNION
+                           SELECT * FROM modellingData WHERE responsible_institute LIKE '%{input_string}%' UNION
+                           SELECT * FROM optimisingData WHERE responsible_institute LIKE '%{input_string}%' UNION
+                           SELECT * FROM exportingData WHERE responsible_institute LIKE '%{input_string}%'
+                            """)
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
         except OperationalError:
             print("File not found. Try specifying a different path")
             return pd.DataFrame()
 
-    def getActivitiesByResponsibleInstitution(self, partialName: str) -> pd.DataFrame:
-        pass
+    def getActivitiesByResponsiblePerson(self, input_string: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            cursor.execute(f"""SELECT * FROM acquisitionData WHERE responsible_person LIKE '%{input_string}%' UNION
+                           SELECT * FROM processingData WHERE responsible_person LIKE '%{input_string}%' UNION
+                           SELECT * FROM modellingData WHERE responsible_person LIKE '%{input_string}%' UNION
+                           SELECT * FROM optimisingData WHERE responsible_person LIKE '%{input_string}%' UNION
+                           SELECT * FROM exportingData WHERE responsible_person LIKE '%{input_string}%'
+                            """)
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
+        
+    def getActivitiesUsingTool(self, input_string: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            cursor.execute(f"""SELECT * FROM acquisitionData WHERE tool LIKE '%{input_string}%' UNION
+                           SELECT * FROM processingData WHERE tool LIKE '%{input_string}%' UNION
+                           SELECT * FROM modellingData WHERE tool LIKE '%{input_string}%' UNION
+                           SELECT * FROM optimisingData WHERE tool LIKE '%{input_string}%' UNION
+                           SELECT * FROM exportingData WHERE tool LIKE '%{input_string}%'
+                            """)
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
+        
+    def getActivitiesStartedAfter(self, input_date: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
+            cursor.execute("""SELECT * FROM acquisitionData WHERE start_date >= ?
+                            UNION
+                            SELECT * FROM processingData WHERE start_date >= ?
+                            UNION
+                            SELECT * FROM modellingData WHERE start_date >= ?
+                            UNION
+                            SELECT * FROM optimisingData WHERE start_date >= ?
+                            UNION
+                            SELECT * FROM exportingData WHERE start_date >= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
 
-    def getActivitiesByResponsiblePerson(self, partialName: str) -> pd.DataFrame:
-        pass
+    def getActivitiesEndedBefore(self, input_date: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
+            cursor.execute("""SELECT * FROM acquisitionData WHERE end_date <= ?
+                            UNION
+                            SELECT * FROM processingData WHERE end_date <= ?
+                            UNION
+                            SELECT * FROM modellingData WHERE end_date <= ?
+                            UNION
+                            SELECT * FROM optimisingData WHERE end_date <= ?
+                            UNION
+                            SELECT * FROM exportingData WHERE end_date <= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
         
-    def getActivitiesUsingTool(self, partialName: str) -> pd.DataFrame:
-        pass
-        
-    def getActivitiesStartedAfter(self, date: str) -> pd.DataFrame:
-        pass
-        
-    def getActivitiesEndedBefore(self, date: str) -> pd.DataFrame:
-        pass
-        
-    def getAcquisitionsByTechnique(partialName: str) -> pd.DataFrame:
-        pass
+    def getAcquisitionsByTechnique(self, input_string: str) -> pd.DataFrame:
+        try:
+            db = self.getDbPathOrURL()
+            conn = connect(db)
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT * FROM acquisitionData WHERE technique LIKE '%{input_string}%'")
+            data = cursor.fetchall()
+            columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
+            return pd.DataFrame(data, columns = columns)
+        except OperationalError:
+            print("File not found. Try specifying a different path")
+            return pd.DataFrame()
 
-class MetadataQueryHandler(QueryHandler):    
+class MetadataQueryHandler(QueryHandler):  
+    def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
+        super().__init__()  
     
     # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
     def getAllPeople(self) -> pd.DataFrame:
@@ -417,7 +511,7 @@ class MetadataQueryHandler(QueryHandler):
         WHERE { ?uri <https://schema.org/givenName> ?name ;
                      <https://schema.org/identifier> ?id . }
         """)
-        result = request.query().convert()
+        result = self.request.query().convert()
         result = result["results"]["bindings"]
         result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in result]), "Id": pd.Series([row["id"]["value"] for row in result]), 
                           "Uri": pd.Series([row["uri"]["value"]] for row in result)})
@@ -476,11 +570,11 @@ class MetadataQueryHandler(QueryHandler):
                  ?typeUri rdfs:label ?type .
                  ?persUri <https://schema.org/identifier> '{personId}' . }}
         """)
-        result = request.query().convert()
-        result = result["results"]["bindings"]
-        result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in result]), "Type": pd.Series([row["type"]["value"] for row in result]),
-                                       "Id": pd.Series([row["id"]["value"] for row in result]), "Uri": pd.Series([row["uri"]["value"] for row in result])}) 
-        return result_df
+        self.result = self.request.query().convert()
+        self.result = self.result["results"]["bindings"]
+        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
+                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
+        return self.result_df
 
 ### Test
 # obj = MetadataQueryHandler()
