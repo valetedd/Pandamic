@@ -6,6 +6,7 @@ import rdflib as rdf
 from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
+from urllib.parse import quote, urlencode, quote_plus
 
 ############# ENTITIES ###############
 
@@ -292,9 +293,9 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):
             for pred, obj in row.items():
                 
                 #added some general if clause to include that the triple isn't considered if the data is missing, unless it's the date that can be absent
-                if len(obj) == 0 and pred is not "datePublished":
+                if len(obj) == 0 and pred != "datePublished":
                     pass
-                elif pred is "datePublished" and len(obj) == 0:
+                elif pred == "datePublished" and len(obj) == 0:
                     if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
                                 graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
                 else:
@@ -357,6 +358,9 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):
 ############ QUERY MANAGEMENT #################
     
 class QueryHandler(Handler):
+
+    def __init__(self):
+        pass
     
     def getById(self, id: str) -> pd.DataFrame:
         pass
@@ -386,12 +390,13 @@ class ProcessDataQueryHandler(QueryHandler):
 
 class MetadataQueryHandler(QueryHandler):
     def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
-        self.endpoint = self.getDbPathOrURL()
-        self.request = sw.SPARQLWrapper(self.endpoint)
-        self.request.setReturnFormat(sw.JSON)
+        super().__init__()
     
     # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
     def getAllPeople(self) -> pd.DataFrame:
+        self.endpoint = super().getDbPathOrURL()
+        self.request = sw.SPARQLWrapper(self.endpoint)
+        self.request.setReturnFormat(sw.JSON)
         self.request.setQuery("""
         SELECT ?name ?id ?uri
         WHERE { ?uri <https://schema.org/givenName> ?name ;
@@ -405,14 +410,20 @@ class MetadataQueryHandler(QueryHandler):
 
     # Step 3. do it again
     def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
-        self.request.setQuery("""
+        self.endpoint = super().getDbPathOrURL()
+        self.request = sw.SPARQLWrapper(self.endpoint)
+        self.request.setReturnFormat(sw.JSON)
+        self.query = """
         SELECT ?obj ?type ?id ?uri
         WHERE { ?uri <https://schema.org/name> ?obj ;
                      rdf:type ?typeUri ;
                      <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type . }
-        """)
-        self.result = self.request.query().convert()
+        """
+        
+        self.request.setQuery(self.query)
+        self.result = self.request.query()
+        self.result = self.result.convert()
         self.result = self.result["results"]["bindings"]
         self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
                                        "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
@@ -420,6 +431,9 @@ class MetadataQueryHandler(QueryHandler):
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
+        self.endpoint = super().getDbPathOrURL()
+        self.request = sw.SPARQLWrapper(self.endpoint)
+        self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
         SELECT ?name ?id ?uri
         WHERE {{ ?uri <https://schema.org/givenName> ?name ;
@@ -435,6 +449,9 @@ class MetadataQueryHandler(QueryHandler):
     
     # Step 5. someone stop me (I've done it again)
     def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
+        self.endpoint = super().getDbPathOrURL()
+        self.request = sw.SPARQLWrapper(self.endpoint)
+        self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
         SELECT ?obj ?type ?id ?uri
         WHERE {{ ?uri <https://schema.org/name> ?obj ;
