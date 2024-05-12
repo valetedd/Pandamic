@@ -51,7 +51,7 @@ class NauticalChart(CulturalHeritageObject):
     def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
         super().__init__(id, title, date, owner, place, hasAuthor)
 
-class ManuscriptPlace(CulturalHeritageObject):
+class ManuscriptPlate(CulturalHeritageObject):
     def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
         super().__init__(id, title, date, owner, place, hasAuthor)
 
@@ -252,7 +252,7 @@ class ProcessDataUploadHandler(UploadHandler):
 # obj.setDbPathOrUrl("databases/relational.db")
 # print(obj.pushDataToDb("data/process.json"))
 ##############
-class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):
+class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (can moren than 1) and date (in case it's 0)
     
     def pushDataToDb(self, path : str) -> bool:
         blzgrph = SPARQLUpdateStore()
@@ -527,19 +527,51 @@ class MetadataQueryHandler(QueryHandler):
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.query = """
-        SELECT ?obj ?type ?id ?uri
+        SELECT ?obj ?type ?id ?uri ?nameAuthor ?date ?namePlace ?nameOwner 
         WHERE { ?uri <https://schema.org/name> ?obj ;
                      rdf:type ?typeUri ;
                      <https://schema.org/identifier> ?id .
-                ?typeUri rdfs:label ?type . }
+                ?typeUri rdfs:label ?type .
+                ?uri <https://schema.org/datePublished> ?date ;
+                     <https://schema.org/spatial> ?uriPlace ;
+                     <https://schema.org/maintainer> ?uriOwner .
+                ?uriPlace rdfs:label ?namePlace .
+                ?uriOwner rdfs:label ?nameOwner .
+                OPTIONAL { ?uri <https://schema.org/author> ?uriAuthor .
+                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }
+                 }
         """
         
         self.request.setQuery(self.query)
-        self.result = self.request.query()
-        self.result = self.result.convert()
+        self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
-        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
-                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
+        self.result_rows = []
+        # self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
+        #                                "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
+        #                                "Author": pd.Series([row["nameAuthor"]["value"] for row in self.result]), "Date Publishing": pd.Series([row["date"]["value"] for row in self.result]),
+        #                                "Place": pd.Series([row["namePlace"]["value"] for row in self.result]), "Owner": pd.Series([row["nameOwner"]["value"] for row in self.result])}) 
+        for row in self.result:
+            if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
+                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
+            elif "nameAuthor" not in list(row.keys()) and "date" in list(row.keys()):
+               self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Author": pd.Series([""]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
+            elif "nameAuthor" in list(row.keys()) and "date" not in list(row.keys()):
+                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([""]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
+            elif "nameAuthor" not in list(row.keys()) and "date" not in list(row.keys()):
+                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
+                                       "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
+        self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
         return self.result_df
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
