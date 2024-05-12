@@ -25,7 +25,6 @@ from impl import MetadataUploadHandler, MetadataQueryHandler
 
 # 3) Importing the class for dealing with mashup queries
 from impl import AdvancedMashup
-
 # Once all the classes are imported, first create the relational
 # database using the related source data
 rel_path = "relational.db"
@@ -38,7 +37,8 @@ process.pushDataToDb("data/process.json")
 
 # Then, create the graph database (remember first to run the
 # Blazegraph instance) using the related source data
-grp_endpoint = "http://127.0.0.1:9999/blazegraph/sparql"
+blaz_url = "" # copy-paste url appearing when the blazegraph instance is run
+grp_endpoint =  blaz_url + "sparql"
 metadata = MetadataUploadHandler()
 metadata.setDbPathOrUrl(grp_endpoint)
 metadata.pushDataToDb("data/meta.csv")
@@ -61,6 +61,7 @@ mashup.addProcessHandler(process_qh)
 mashup.addMetadataHandler(metadata_qh)
 
 result_q1 = mashup.getAllActivities()
-result_q2 = mashup.getAuthorsOfCulturalHeritageObject("1")
-result_q3 = mashup.getAuthorsOfObjectsAcquiredInTimeFrame("2023-04-01", "2023-05-01")
+# result_q2 = mashup.getAuthorsOfCulturalHeritageObject("1")
+# result_q3 = mashup.getAuthorsOfObjectsAcquiredInTimeFrame("2023-04-01", "2023-05-01")
 # etc...
+# result_q4 = mashup.getActivitiesOnObjectsAuthoredBy("VIAF:100190422")
