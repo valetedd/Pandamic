@@ -142,19 +142,23 @@ class Handler(object):
     dbPathOrURL = ""
 
     def getDbPathOrURL(self):
-        return self.dbPathOrURL
+        return Handler.dbPathOrURL
     
     def setDbPathOrUrl(self, pathOrURL: str) -> bool:
-        try:
-            self.dbPathOrURL = pathOrURL
-            print("Database location succesfully updated")
-            return True
-        except ValueError as e:
-            print(f"{e}: input argument must be a string")
+        try:    
+            if isinstance(pathOrURL, str):
+                Handler.dbPathOrURL = pathOrURL
+                print("Database location succesfully updated")
+                return True
+            else:
+                raise ValueError
+        except ValueError as v:
+            print(f"{v}: input has to be a string")
             return False
         except TypeError:
             print("Please specify a path or URL")
             return False
+            
 ### TESTS ###
 # h = Handler()
 # h.setDbPathOrUrl("mamma")
@@ -578,10 +582,16 @@ class MetadataQueryHandler(QueryHandler):
 
 ### Test
 # obj = MetadataQueryHandler()
+# print(MetadataQueryHandler.__dict__)
+# print(obj.__dict__)
+# print(Handler.__dict__)
 # print(obj.dbPathOrURL)
 # obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
+# print(obj.__dict__)
+# print(Handler.__dict__)
 # print(obj.dbPathOrURL)
 # print(Handler.dbPathOrURL)
+# print(obj.getDbPathOrURL())
 # print(obj.getAllPeople())
 # print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
