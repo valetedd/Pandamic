@@ -16,7 +16,7 @@ import unittest
 from os import sep
 from pandas import DataFrame
 from impl import MetadataUploadHandler, ProcessDataUploadHandler
-from impl import MetadataQueryHandler, ProcessDataQueryHandler
+from impl import MetadataQueryHandler, ProcessDataQueryHandler, QueryHandler
 from impl import AdvancedMashup
 from impl import Person, CulturalHeritageObject, Activity, Acquisition
 

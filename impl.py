@@ -367,10 +367,24 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
 class QueryHandler(Handler):
 
     def __init__(self):
-        pass
+        super().__init__()
     
     def getById(self, id: str) -> pd.DataFrame:
-        pass
+        try:
+            self.endpoint = super().getDbPathOrURL()
+            self.request = sw.SPARQLWrapper(self.endpoint)
+            self.request.setReturnFormat(sw.JSON)
+            self.request.setQuery(f"""
+            SELECT ?name
+            WHERE {{ ?uri <https://schema.org/identifier>  "{id}" . 
+            {{ ?uri <https://schema.org/name> ?name }} UNION {{ ?uri <https://schema.org/givenName> ?name }} . }}
+            """)
+            result = self.request.query().convert()
+            result = result["results"]["bindings"]
+            result_df = pd.DataFrame({"Entity": pd.Series([row["name"]["value"] for row in result])})
+            return result_df
+        except Exception:
+            return(Exception)
 
 class ProcessDataQueryHandler(QueryHandler):
 
