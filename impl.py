@@ -149,7 +149,7 @@ class Handler(object):
         try:    
             if isinstance(pathOrURL, str):
                 self.dbPathOrURL = pathOrURL
-                print("Database location succesfully updated")
+                print(f"Database location for {self} succesfully set")
                 return True
             else:
                 raise ValueError
@@ -661,7 +661,7 @@ class BasicMashup:
         print("ProcessData handlers succesfully reset")
         return True
     
-    def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool:
+    def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool: # maybe checking if the same handler is already in the list?
         try:
             self.metadataQuery.append(handler)
             print("Handler succesfully added to the MetaData handlers-list")
@@ -670,7 +670,7 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:
+    def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:  # maybe checking if the same handler is already in the list?
         try:
             self.processdataQuery.append(handler)
             print("Handler succesfully added to the ProcessData handlers-list")
@@ -693,336 +693,336 @@ class BasicMashup:
     @print_attributes
     def getAllActivities(self) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getAllActivities()
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])                                        
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])                                        
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
+        df_list = [handler.getAllActivities() for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])                                        
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])                                        
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
         
         return result
 
     @print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getActivitiesByResponsibleInstitution(partialName)
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
+        df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
 
         return result 
     
     @print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getActivitiesByResponsiblePerson(partialName)
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
-        
+        df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
+
         return result
     
     @print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getActivitiesUsingTool(partialName)
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
-    
+        df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
+
         return result
     
     @print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getActivitiesStartedAfter(date)
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"] 
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
-        
+        df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
+
         return result
     
     @print_attributes
-    def getActivitiesEndedAfter(self, date: str) -> list[Activity]:
+    def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getActivitiesEndedAfter(date)
-            for _, row in pquery_df.iterrows():
-                curr_type: str = row["type"]
-                match curr_type: 
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=row["object_id"])
-                result.append(obj)
-        
+        df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            curr_type: str = row["type"] 
+            match curr_type: 
+                case "acquisition":
+                    obj = Acquisition(
+                                    institute=row["responsible_institute"], 
+                                    technique=row["technique"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "processing":
+                    obj = Processing(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "modelling":
+                    obj = Modelling(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "optimising":
+                    obj = Optimising(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+                case "exporting":
+                    obj = Exporting(
+                                    institute=row["responsible_institute"], 
+                                    person=row["responsible_person"], 
+                                    tool=row["tool"], 
+                                    start=row["start_date"], 
+                                    end=row["end_date"], 
+                                    refersTo=row["object_id"])
+            result.append(obj)
+
         return result
     
     @print_attributes
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
-        for handler in self.processdataQuery:
-            pquery_df = handler.getAcquisitionByTechnique(partialName)
-            for _, row in pquery_df.iterrows():
-                obj = Acquisition(
-                                institute=row["responsible_institute"], 
-                                technique=row["technique"], 
-                                person=row["responsible_person"], 
-                                tool=row["tool"], 
-                                start=row["start_date"], 
-                                end=row["end_date"], 
-                                refersTo=row["object_id"])
-                result.append(obj)
+        df_list = [handler.getAcquisitionByTechnique(partialName) for handler in self.processdataQuery]
+        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        for _, row in final_df.iterrows():
+            obj = Acquisition(
+                            institute=row["responsible_institute"], 
+                            technique=row["technique"], 
+                            person=row["responsible_person"], 
+                            tool=row["tool"], 
+                            start=row["start_date"], 
+                            end=row["end_date"], 
+                            refersTo=row["object_id"])
+            result.append(obj)
         
         return result
     
@@ -1030,6 +1030,8 @@ class BasicMashup:
 # obj = BasicMashup()
 # pqh = ProcessDataQueryHandler()
 # pqh.setDbPathOrUrl("databases/relational.db")
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
 # obj.addProcessHandler(pqh)
 # print(obj.getActivitiesByResponsibleInstitution("s"))
 
