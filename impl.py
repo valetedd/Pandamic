@@ -8,6 +8,7 @@ from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
 from urllib.parse import quote, urlencode, quote_plus
 import datetime
+import json
 
 ############# ENTITIES ###############
 
@@ -268,7 +269,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
             request.setReturnFormat(sw.JSON)
             request.setQuery(base_query)
             result = request.query().convert()
-            return result['boolean']
+            return result["boolean"]
             
 
 
@@ -348,8 +349,8 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
                                 graph_to_upload.add((rdf.URIRef(dict_of_obj_uri[obj]), RDFS.label, rdf.Literal(obj)))  # they use SDO instead of RDF
                         
                         else:
-                            if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
-                                graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
+                           if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
+                               graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
         
         try:                                                                     #added try condition that results in a boolean output
             blzgrph.open((endpoint,endpoint))
@@ -521,7 +522,7 @@ class MetadataQueryHandler(QueryHandler):
                           "Uri": pd.Series([row["uri"]["value"]] for row in result)})
         return result_df
 
-    # Step 3. do it again
+    # Step 3. do it again  - in this case the query is more complex
     def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrURL()
         self.request = sw.SPARQLWrapper(self.endpoint)
@@ -546,10 +547,13 @@ class MetadataQueryHandler(QueryHandler):
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
         self.result_rows = []
+
+        #I'm keeping it just in case :) - DON'T DELETE IT!!!
         # self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
         #                                "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
         #                                "Author": pd.Series([row["nameAuthor"]["value"] for row in self.result]), "Date Publishing": pd.Series([row["date"]["value"] for row in self.result]),
         #                                "Place": pd.Series([row["namePlace"]["value"] for row in self.result]), "Owner": pd.Series([row["nameOwner"]["value"] for row in self.result])}) 
+
         for row in self.result:
             if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
@@ -1098,22 +1102,61 @@ class AdvancedMashup(BasicMashup):
         pass
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
-            if len(self.processdataQuery) == 0:
+            if len(self.processdataQuery) == 0:                                                  # checking if there are any PDQHs in the attribute 
                 print("No MetadataQueryHandler set for the mashup process. Please add at least one")
                 return []
-            if len(self.metadataQuery) == 0:
+            if len(self.metadataQuery) == 0:                                                      # same but for the MDQHs
                 print("No MetadataQueryHandler set for the mashup process. Please add at least one")
                 return []
-        except:
-            try:
-                if len(self.processdataQuery) == 0:
-                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
-                    return []
-                if len(self.metadataQuery) == 0:
-                    print("No MetadataQueryHandler set for the mashup process. Please add at least one")
-                    return []
-            except:
-                pass
+            else:                                        # get the DFs using the corresponding methods using a quick in-line for loop
+                pdf_list = [pd_handler.getActivitiesByResponsibleInstitution(partialName) for pd_handler in self.processdataQuery]
+                mdf_list = [md_handler.getAllCulturalHeritageObjects() for md_handler in self.metadataQuery]
+
+                p_concat_df = pd.concat(pdf_list, join="outer", ignore_index=True)              
+                m_concat_df = pd.concat(mdf_list, join="outer", ignore_index=True)
+                merged_df = pd.merge(p_concat_df, m_concat_df, left_on="object_id", right_on="Id")   # after concatenating the list of DFs, they are merged on the ID of the object
+                
+                list_to_return = list()  # setting the list that will be returned
+                list_id = list()  # setting a list for the comparison of IDs, as to avoid adding multiple objects for the same CHO
+                
+                for idx, row in merged_df.iterrows():         # for any row in the df an object is created of the instance correspective to their type
+                    match row["Type"]:
+                        case "Nautical chart":
+                            obj_to_append = NauticalChart(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Manuscript plate":
+                            obj_to_append = ManuscriptPlate(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Manuscript volume":
+                            obj_to_append = ManuscriptVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Printed volume":
+                            obj_to_append = PrintedVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Printed material":
+                            obj_to_append = PrintedMaterial(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Herbarium":
+                            obj_to_append = Herbarium(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Specimen":
+                            obj_to_append = Specimen(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Painting":
+                            obj_to_append = Painting(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Model":
+                            obj_to_append = Model(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                        case "Map":
+                            obj_to_append = Map(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
+                    
+                    if len(list_to_return) == 0:                   # quick check to see if 1) the result list is empty (add the python object regardless)
+                        list_to_return.append(obj_to_append)
+                        list_id.append(obj_to_append.getId())
+                    else:                                          # and otherwise 2) if there are python objects with the same ID already parsed (in this case, ignore the object)
+                        if obj_to_append.getId() not in list_id:
+                            list_to_return.append(obj_to_append)
+                            list_id.append(obj_to_append.getId())
+                        else:
+                            pass
+
+                return list_to_return
+                
+        except Exception as e:
+          return f"{e}"
+        
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
 
