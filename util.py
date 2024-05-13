@@ -47,3 +47,14 @@ def hash_ids_for_df (df: pd.DataFrame, prefix: str) -> list[str]:
         curr_hash = algorithm.hexdigest()
         int_ids.append(prefix + curr_hash[:7]) 
     return int_ids
+
+def print_attributes(func):
+        def wrapper(*args):
+            obj_list = func(*args)
+            if not obj_list:
+                return obj_list
+            counter = 0
+            for obj in obj_list:
+                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}: \n{type(obj)}; \n{", ".join(obj.__dict__.values())}""")
+                counter += 1
+        return wrapper

@@ -143,12 +143,12 @@ class Handler(object):
     dbPathOrURL = ""
 
     def getDbPathOrURL(self):
-        return Handler.dbPathOrURL
+        return self.dbPathOrURL
     
     def setDbPathOrUrl(self, pathOrURL: str) -> bool:
         try:    
             if isinstance(pathOrURL, str):
-                Handler.dbPathOrURL = pathOrURL
+                self.dbPathOrURL = pathOrURL
                 print("Database location succesfully updated")
                 return True
             else:
@@ -651,15 +651,6 @@ class BasicMashup:
     metadataQuery: list[MetadataQueryHandler] = []
     processdataQuery: list[ProcessDataQueryHandler] = []
 
-    def print_attributes(func):
-        def wrapper(*args):
-            obj_list = func(*args)
-            counter = 0
-            for obj in obj_list:
-                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}: \n{type(obj)}; \n{", ".join(obj.__dict__.values())}""")
-                counter += 1
-        return wrapper
-
     def cleanMetadataHandlers(self) -> bool:
         self.metadataQuery.clear()
         print("MetaData handlers succesfully reset")
@@ -802,8 +793,8 @@ class BasicMashup:
                                         end=row["end_date"], 
                                         refersTo=row["object_id"])
                 result.append(obj)
-        
-        return result
+
+        return result 
     
     @print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
@@ -1036,15 +1027,15 @@ class BasicMashup:
         return result
     
 ### TEST ###
-obj = BasicMashup()
-pqh = ProcessDataQueryHandler()
-pqh.setDbPathOrUrl("databases/relational.db")
-obj.addProcessHandler(pqh)
-obj.getActivitiesByResponsibleInstitution("SD")
+# obj = BasicMashup()
+# pqh = ProcessDataQueryHandler()
+# pqh.setDbPathOrUrl("databases/relational.db")
+# obj.addProcessHandler(pqh)
+# print(obj.getActivitiesByResponsibleInstitution("s"))
 
 class AdvancedMashup(BasicMashup): 
 
-    @BasicMashup.print_attributes
+    @print_attributes
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if len(self.processdataQuery) == 0:
@@ -1173,5 +1164,3 @@ class AdvancedMashup(BasicMashup):
         
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, start: str, end: str):
         pass
-
-
