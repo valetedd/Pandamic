@@ -53,7 +53,7 @@ def print_attributes(func):
             obj_list = func(*args)
             counter = 0
             for obj in obj_list:
-                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}: \n{type(obj)}; \n{", ".join(obj.__dict__.values())}""")
+                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}:\n \n{type(obj)}; \n{", ".join(obj.__dict__.values())}\n\n""")
                 counter += 1
             return obj_list
         return wrapper
