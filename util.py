@@ -1,7 +1,6 @@
 import pandas as pd
 import hashlib
 from typing import Any
-import impl as i
 
 def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
     try:
@@ -48,32 +47,3 @@ def hash_ids_for_df (df: pd.DataFrame, prefix: str) -> list[str]:
         curr_hash = algorithm.hexdigest()
         int_ids.append(prefix + curr_hash[:7]) 
     return int_ids
-
-def print_attributes(list_of_obj):
-    try:
-        counter = 1
-        for obj in list_of_obj:
-            if isinstance(obj, i.Acquisition):
-                print(f"""Activity object attributes n.{counter}:
-                                    {obj.getResponsibleInstitute()};
-                                    {obj.getResponsiblePerson()};
-                                    {obj.getTool()};
-                                    {obj.getStartDate()};
-                                    {obj.getEndDate()};
-                                    {obj.getTechnique()};
-                                    {obj.refersTo};\n""")
-            else:
-                print(f"""Activity object attributes n.{counter}:
-                                    {obj.getResponsibleInstitute()};
-                                    {obj.getResponsiblePerson()};
-                                    {obj.getTool()};
-                                    {obj.getStartDate()};
-                                    {obj.getEndDate()};
-                                    {obj.refersTo};\n""")
-            counter += 1
-        return
-    except:
-        pass
-# with open("data/process.json", "r", encoding="utf-8") as f:
-#     data = json.load(f)
-# #print(njson_to_df(data))

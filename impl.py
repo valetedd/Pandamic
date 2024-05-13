@@ -114,8 +114,8 @@ class Activity():
     
 class Acquisition(Activity):
     def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
-        self.technique = technique
         super().__init__(institute, person, tool, start, end, refersTo)
+        self.technique = technique
         
     def getTechnique(self):
         return self.technique
@@ -208,7 +208,7 @@ class ProcessDataUploadHandler(UploadHandler):
             # Loading data into a DataFrame
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)             
-            act_df = njson_to_df(data) # Converting json to Dataframe in accordance to the data model
+            act_df = njson_to_df(data) # Converting json to Dataframe according to the data model
             act_df = act_df.map(regularize_data) # Regularizing datatypes 
             
             # Adding column of stable hashes as internal IDs
@@ -219,8 +219,8 @@ class ProcessDataUploadHandler(UploadHandler):
             db = self.getDbPathOrURL()        
             types = act_df["type"].unique()
             with connect(db) as con:
-                for t  in types:
-                    sdf = act_df[act_df["type"] == t ] # dividing data in sub-dataframes by type   
+                for t in types:
+                    sdf = act_df[act_df["type"] == t] # dividing data in sub-dataframes by type   
                     df_name = f"{t}Data" # table name to use in the db
                     sdf.to_sql(df_name, con, if_exists="append", index=False)
                     print(f"{df_name} succesfully uploaded")
@@ -651,6 +651,15 @@ class BasicMashup:
     metadataQuery: list[MetadataQueryHandler] = []
     processdataQuery: list[ProcessDataQueryHandler] = []
 
+    def print_attributes(func):
+        def wrapper(*args):
+            obj_list = func(*args)
+            counter = 0
+            for obj in obj_list:
+                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}: \n{type(obj)}; \n{", ".join(obj.__dict__.values())}""")
+                counter += 1
+        return wrapper
+
     def cleanMetadataHandlers(self) -> bool:
         self.metadataQuery.clear()
         print("MetaData handlers succesfully reset")
@@ -689,6 +698,8 @@ class BasicMashup:
         pass
     def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObject]:
         pass
+
+    @print_attributes
     def getAllActivities(self) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -741,6 +752,7 @@ class BasicMashup:
         
         return result
 
+    @print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -793,6 +805,7 @@ class BasicMashup:
         
         return result
     
+    @print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -845,6 +858,7 @@ class BasicMashup:
         
         return result
     
+    @print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -897,6 +911,7 @@ class BasicMashup:
     
         return result
     
+    @print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -949,6 +964,7 @@ class BasicMashup:
         
         return result
     
+    @print_attributes
     def getActivitiesEndedAfter(self, date: str) -> list[Activity]:
         result = []
         for handler in self.processdataQuery:
@@ -1001,24 +1017,34 @@ class BasicMashup:
         
         return result
     
+    @print_attributes
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
         for handler in self.processdataQuery:
             pquery_df = handler.getAcquisitionByTechnique(partialName)
             for _, row in pquery_df.iterrows():
                 obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                institute=row["responsible_institute"], 
+                                technique=row["technique"], 
+                                person=row["responsible_person"], 
+                                tool=row["tool"], 
+                                start=row["start_date"], 
+                                end=row["end_date"], 
+                                refersTo=row["object_id"])
                 result.append(obj)
         
         return result
+    
+### TEST ###
+obj = BasicMashup()
+pqh = ProcessDataQueryHandler()
+pqh.setDbPathOrUrl("databases/relational.db")
+obj.addProcessHandler(pqh)
+obj.getActivitiesByResponsibleInstitution("SD")
 
-class AdvancedMashup(BasicMashup):
+class AdvancedMashup(BasicMashup): 
+
+    @BasicMashup.print_attributes
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if len(self.processdataQuery) == 0:
@@ -1081,8 +1107,6 @@ class AdvancedMashup(BasicMashup):
                                         end=row["end_date"], 
                                         refersTo=row["object_id"])
                 result.append(obj)
-            if result:
-                print_attributes(result)    
             return result
         except Exception as e:
             print(f"{e}")
