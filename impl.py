@@ -89,31 +89,33 @@ class Map(CulturalHeritageObject):
         super().__init__(id, title, date, owner, place, hasAuthor)
 
 class Activity():
-    def __init__(self, institute:str, person: str|None, tool: str|None, start: str|None, end: str|None, refersTo: str):
+    def __init__(self, institute:str, person: str|None, tool: str|None, start: str|None, end: str|None, refersTo: CulturalHeritageObject):
         self.institute = institute
         self.person = person
         self.tool = tool
         self.start = start
         self.end = end
-        self.refersTo = refersTo
+        self.refersToObj = refersTo
     
-    def getResponsibleInstitute(self):
+    def getResponsibleInstitute(self) -> str:
         return self.institute
     
-    def getResponsiblePerson(self):
+    def getResponsiblePerson(self) -> str | None:
         return self.person
     
-    def getTool(self):
+    def getTool(self) -> set[str]:
         return self.tool
     
-    def getStartDate(self):
+    def getStartDate(self) -> str | None:
         return self.start
     
-    def getEndDate(self):
+    def getEndDate(self) -> str | None:
         return self.end
+    def refersTo(self) -> CulturalHeritageObject:
+        return self.refersToObj
     
 class Acquisition(Activity):
-    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
         self.technique = technique
         
@@ -121,19 +123,19 @@ class Acquisition(Activity):
         return self.technique
     
 class Processing(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Modelling(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Optimising(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Exporting(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: str):
+    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 ################## UPLOAD MANAGEMENT ######################
@@ -695,7 +697,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -706,7 +710,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -714,7 +718,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])                                        
+                                    refersTo=cult_obj)                                        
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -722,7 +726,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -730,7 +734,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])                                        
+                                    refersTo=cult_obj)                                        
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -738,7 +742,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
         
         return result
@@ -748,7 +752,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -759,7 +765,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -767,7 +773,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -775,7 +781,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -783,7 +789,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -791,7 +797,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
 
         return result 
@@ -801,7 +807,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -812,7 +820,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -820,7 +828,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -828,7 +836,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -836,7 +844,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -844,7 +852,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
 
         return result
@@ -854,7 +862,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -865,7 +875,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -873,7 +883,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -881,7 +891,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -889,7 +899,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -897,7 +907,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
 
         return result
@@ -907,7 +917,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -918,7 +930,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -926,7 +938,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -934,7 +946,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -942,7 +954,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -950,7 +962,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
 
         return result
@@ -960,7 +972,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             curr_type: str = row["type"] 
             match curr_type: 
                 case "acquisition":
@@ -971,7 +985,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "processing":
                     obj = Processing(
                                     institute=row["responsible_institute"], 
@@ -979,7 +993,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "modelling":
                     obj = Modelling(
                                     institute=row["responsible_institute"], 
@@ -987,7 +1001,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "optimising":
                     obj = Optimising(
                                     institute=row["responsible_institute"], 
@@ -995,7 +1009,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
                 case "exporting":
                     obj = Exporting(
                                     institute=row["responsible_institute"], 
@@ -1003,7 +1017,7 @@ class BasicMashup:
                                     tool=row["tool"], 
                                     start=row["start_date"], 
                                     end=row["end_date"], 
-                                    refersTo=row["object_id"])
+                                    refersTo=cult_obj)
             result.append(obj)
 
         return result
@@ -1013,7 +1027,9 @@ class BasicMashup:
         result = []
         df_list = [handler.getAcquisitionByTechnique(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
+            cult_obj = self.getEntityById(row["object_id"])
             obj = Acquisition(
                             institute=row["responsible_institute"], 
                             technique=row["technique"], 
@@ -1021,7 +1037,7 @@ class BasicMashup:
                             tool=row["tool"], 
                             start=row["start_date"], 
                             end=row["end_date"], 
-                            refersTo=row["object_id"])
+                            refersTo=cult_obj)
             result.append(obj)
         
         return result
@@ -1033,7 +1049,7 @@ class BasicMashup:
 # obj.addProcessHandler(pqh)
 # obj.addProcessHandler(pqh)
 # obj.addProcessHandler(pqh)
-# print(obj.getActivitiesByResponsibleInstitution("s"))
+# print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
 
@@ -1053,10 +1069,12 @@ class AdvancedMashup(BasicMashup):
             p_conc_df = pd.concat(pdf_list, join="outer", ignore_index=True)
             # print(f"PQlist concatenated:\n{p_conc_df}")
             final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
             # print(f"Merged df:\n{final_df.head(20)}")
             result = []
             for _, row in final_df.iterrows():
-                curr_type: str = row["type"] 
+                curr_type: str = row["type"]
+                cult_obj = self.getEntityById(row["object_id"]) 
                 match curr_type:
                     case "acquisition":
                         obj = Acquisition(
@@ -1066,7 +1084,7 @@ class AdvancedMashup(BasicMashup):
                                         tool=row["tool"], 
                                         start=row["start_date"], 
                                         end=row["end_date"], 
-                                        refersTo=row["object_id"])
+                                        refersTo=cult_obj)
                     case "processing":
                         obj = Processing(
                                         institute=row["responsible_institute"], 
@@ -1074,7 +1092,7 @@ class AdvancedMashup(BasicMashup):
                                         tool=row["tool"], 
                                         start=row["start_date"], 
                                         end=row["end_date"], 
-                                        refersTo=row["object_id"])
+                                        refersTo=cult_obj)
                     case "modelling":
                         obj = Modelling(
                                         institute=row["responsible_institute"], 
@@ -1082,7 +1100,7 @@ class AdvancedMashup(BasicMashup):
                                         tool=row["tool"], 
                                         start=row["start_date"], 
                                         end=row["end_date"], 
-                                        refersTo=row["object_id"])
+                                        refersTo=cult_obj)
                     case "optimising":
                         obj = Optimising(
                                         institute=row["responsible_institute"], 
@@ -1090,7 +1108,7 @@ class AdvancedMashup(BasicMashup):
                                         tool=row["tool"], 
                                         start=row["start_date"], 
                                         end=row["end_date"], 
-                                        refersTo=row["object_id"])
+                                        refersTo=cult_obj)
                     case "exporting":
                         obj = Exporting(
                                         institute=row["responsible_institute"], 
@@ -1098,7 +1116,7 @@ class AdvancedMashup(BasicMashup):
                                         tool=row["tool"], 
                                         start=row["start_date"], 
                                         end=row["end_date"], 
-                                        refersTo=row["object_id"])
+                                        refersTo=cult_obj)
                 result.append(obj)
             return result
         except Exception as e:

@@ -11,10 +11,10 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
         for item in json_data: # iterating over the list of dictionaries
             id = item.pop("object id")
             for act_type in item: # iterating over the activity-type dictionaries
-                df_dict["object id"].append(id)
+                df_dict["object id"].append((id))
                 df_dict["type"].append(act_type)
                 if act_type != "acquisition":
-                    df_dict["technique"].append("")
+                    df_dict["technique"].append(None)
                 for attribute in (attributes := item[act_type]): # iterating over the attribute-keys of each nested dictionary
                     value = item[act_type][attribute]
                     df_dict[attribute].append(value)
@@ -30,7 +30,9 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
 
 def regularize_data(x : Any) -> str:
     if isinstance(x, (list, set, tuple)):
-        return ", ".join(x)
+        return None if len(x) == 0 else ", ".join(x)
+    elif isinstance(x, str) and len(x) == 0:
+        return None
     elif isinstance(x, dict):
         values = [str(x[key]) for key in x.keys()]
         return ", ".join(values)
@@ -49,11 +51,11 @@ def hash_ids_for_df (df: pd.DataFrame, prefix: str) -> list[str]:
     return int_ids
 
 def print_attributes(func):
-        def wrapper(*args):
-            obj_list = func(*args)
-            counter = 0
-            for obj in obj_list:
-                print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}:\n \n{type(obj)}; \n{", ".join(obj.__dict__.values())}\n\n""")
-                counter += 1
-            return obj_list
-        return wrapper
+    def wrapper(*args):
+        obj_list = func(*args)
+        counter = 0
+        for obj in obj_list:
+            print(f"""ATTRIBUTES OF ACTIVTY AT INDEX {counter}:\n \n{type(obj)}; \n{obj.__dict__.values()}, {obj.refersTo()}\n\n""")
+            counter += 1
+        return obj_list
+    return wrapper
