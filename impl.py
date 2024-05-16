@@ -7,6 +7,7 @@ from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
 from datetime import datetime
+from pprint import pprint
 
 ############# ENTITIES ###############
 
@@ -142,8 +143,8 @@ class Exporting(Activity):
 
 ################## UPLOAD MANAGEMENT ######################
         
-class Handler(object):                                   
-
+class Handler(object):
+    
     dbPathOrURL = ""
 
     def getDbPathOrURL(self):
@@ -419,7 +420,7 @@ class QueryHandler(Handler):
                     result_df = pd.DataFrame({"Person": pd.Series([row["name"]["value"]])})
             return result_df
         except Exception:
-            return(Exception)
+            return pd.DataFrame()
 
 class ProcessDataQueryHandler(QueryHandler):
 
@@ -552,7 +553,7 @@ class ProcessDataQueryHandler(QueryHandler):
             return pd.DataFrame()
 
 class MetadataQueryHandler(QueryHandler):  
-    def __init__(self):  
+    def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
         super().__init__()  
     
     # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
@@ -606,52 +607,26 @@ class MetadataQueryHandler(QueryHandler):
         for row in self.result:
             if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([int(row["id"]["value"])]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
             elif "nameAuthor" not in list(row.keys()) and "date" in list(row.keys()):
                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([int(row["id"]["value"])]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
             elif "nameAuthor" in list(row.keys()) and "date" not in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([int(row["id"]["value"])]), "Uri": pd.Series([row["uri"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
             elif "nameAuthor" not in list(row.keys()) and "date" not in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([int(row["id"]["value"])]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
-        
         self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
-        dfs_to_concat = []
-        # print (pd.pivot_table(self.result_df, index=["Id"], aggfunc="size"))
-
-        for id, num in pd.pivot_table(self.result_df, index=["Id"], aggfunc="size").items(): # for each object that appears more than once
-            if int(num) > 1:
-                item_to_search = [id]
-
-                mask = self.result_df["Id"].isin(item_to_search) 
-                df_of_mult_authors = self.result_df[mask]                 #bring me a selection of the df in which it appears
-                # print(df_of_mult_authors)
-                all_auth_of_curr_obj = df_of_mult_authors["Author"].tolist()  #list of the authors
-                rows_to_drop = df_of_mult_authors.index.values.tolist()      #list of the indexes
-                # print (all_auth_of_curr_obj, rows_to_drop)
-                auth = "; ".join(all_auth_of_curr_obj)                      #create one string for the author
-                row_to_insert = self.result_df.loc[[rows_to_drop[0]]].copy()                          #take one of the rows and copy it
-                # print("row to insert before:", row_to_insert)
-                row_to_insert.at[rows_to_drop[0],"Author"] = auth               #modify the authors putting in the single string with all of them
-                # print("row to insert after", row_to_insert)
-                dfs_to_concat.append(row_to_insert)                            #we'll concateate that row
-                self.result_df = self.result_df.drop(x for x in rows_to_drop)      #drop all the rows with that id that are now useless
-                # print(self.result_df)
-        
-        dfs_to_concat.append(self.result_df)                                 #add the df with the deleted rows in the list that will be concatenated
-        result = pd.concat(dfs_to_concat, join="outer", ignore_index=True)   #concatenate all the rows with the df
-        # print (result[["Author", "Object"]])
-        return result
+        return self.result_df
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
@@ -692,11 +667,19 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
 ### Test
-#obj = MetadataQueryHandler()
-#print(obj.dbPathOrURL)
-#obj.setDbPathOrUrl("http://192.168.1.15:9999/blazegraph/sparql")
-#print(obj.getAllPeople())
-#print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
+obj = MetadataQueryHandler()
+pprint(MetadataQueryHandler.__dict__)
+pprint(obj.__dict__)
+pprint(obj.dbPathOrURL)
+obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
+pprint(obj.__dict__)
+pprint(Handler.__dict__)
+pprint(obj.dbPathOrURL)
+pprint(Handler.dbPathOrURL)
+pprint(Handler.setDbPathOrUrl("example"))
+# pprint(obj.getDbPathOrURL())
+# pprint(obj.getAllPeople())
+# pprint(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
 ############## MASHUP #################
 
@@ -783,8 +766,48 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def getEntityById(self, id: str) -> IdentifiableEntity | None:
-        pass
+    def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
+        df_list =[]
+        for handler in self.metadataQuery:
+            try:
+                df = handler.getById(id)
+                print(df)
+                df_list.append(df)
+            except:
+                None
+        
+        if df_list:
+            try:
+                object_type = df["Type"] 
+                match object_type:
+                    case "Nautical chart":
+                        return NauticalChart(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Printed volume":
+                        return PrintedVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Herbarium":
+                        return Herbarium(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Printed material":
+                        return PrintedMaterial(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Specimen":
+                        return Specimen(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Painting":
+                        return Painting(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Map":
+                        return Map(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Manuscript volume":
+                        return ManuscriptVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Manuscript plate":
+                        return ManuscriptPlate(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Model":
+                        return Model(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    
+            except:
+                name = df['Author']
+                return Person(id,name)
+            
+        else:
+            return None 
+
     def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
     def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObject]:
@@ -869,13 +892,13 @@ class BasicMashup:
         return result
     
 ### TEST ###
-# obj = BasicMashup()
-# pqh = ProcessDataQueryHandler()
-# pqh.setDbPathOrUrl("databases/relational.db")
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
-# obj.getAllActivities()
+obj = BasicMashup()
+pqh = ProcessDataQueryHandler()
+pqh.setDbPathOrUrl("databases/relational.db")
+obj.addProcessHandler(pqh)
+obj.addProcessHandler(pqh)
+obj.addProcessHandler(pqh)
+obj.getAllActivities()
 # print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
@@ -921,8 +944,7 @@ class AdvancedMashup(BasicMashup):
                 pdf_list = [pd_handler.getActivitiesByResponsibleInstitution(partialName) for pd_handler in self.processdataQuery]
                 mdf_list = [md_handler.getAllCulturalHeritageObjects() for md_handler in self.metadataQuery]
 
-                p_concat_df = pd.concat(pdf_list, join="outer", ignore_index=True)
-                p_concat_df["object_id"]   = p_concat_df["object_id"].astype("int64")            
+                p_concat_df = pd.concat(pdf_list, join="outer", ignore_index=True)              
                 m_concat_df = pd.concat(mdf_list, join="outer", ignore_index=True)
                 merged_df = pd.merge(p_concat_df, m_concat_df, left_on="object_id", right_on="Id")   # after concatenating the list of DFs, they are merged on the ID of the object
                 
@@ -932,25 +954,25 @@ class AdvancedMashup(BasicMashup):
                 for idx, row in merged_df.iterrows():         # for any row in the df an object is created of the instance correspective to their type
                     match row["Type"]:
                         case "Nautical chart":
-                            obj_to_append = NauticalChart(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = NauticalChart(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Manuscript plate":
-                            obj_to_append = ManuscriptPlate(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = ManuscriptPlate(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Manuscript volume":
-                            obj_to_append = ManuscriptVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = ManuscriptVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Printed volume":
-                            obj_to_append = PrintedVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = PrintedVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Printed material":
-                            obj_to_append = PrintedMaterial(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = PrintedMaterial(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Herbarium":
-                            obj_to_append = Herbarium(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = Herbarium(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Specimen":
-                            obj_to_append = Specimen(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = Specimen(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Painting":
-                            obj_to_append = Painting(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = Painting(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Model":
-                            obj_to_append = Model(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = Model(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                         case "Map":
-                            obj_to_append = Map(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"].split("; "))
+                            obj_to_append = Map(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
                     
                     if len(list_to_return) == 0:                   # quick check to see if 1) the result list is empty (add the python object regardless)
                         list_to_return.append(obj_to_append)
