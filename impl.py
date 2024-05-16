@@ -419,7 +419,7 @@ class QueryHandler(Handler):
                     result_df = pd.DataFrame({"Person": pd.Series([row["name"]["value"]])})
             return result_df
         except Exception:
-            return(Exception)
+            return pd.DataFrame()
 
 class ProcessDataQueryHandler(QueryHandler):
 
