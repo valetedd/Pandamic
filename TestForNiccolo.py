@@ -1,7 +1,7 @@
 import unittest
 from os import sep
 from pandas import DataFrame
-from impl import MetadataUploadHandler, ProcessDataUploadHandler
+from impl import MetadataUploadHandler, ProcessDataUploadHandler, QueryHandler
 from impl import MetadataQueryHandler, ProcessDataQueryHandler
 from impl import AdvancedMashup
 from impl import Person, CulturalHeritageObject, Activity, Acquisition
@@ -101,7 +101,7 @@ from pprint import pprint
 pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 '''
 
-mduh = MetadataUploadHandler()
+'''mduh = MetadataUploadHandler()
 mdqh = MetadataQueryHandler()
 mdqh.setDbPathOrUrl(pathOrURL="http://192.168.1.57:9999/blazegraph/sparql")
 pdqh = ProcessDataQueryHandler()
@@ -115,4 +115,9 @@ am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
 test = am.getObjectsHandledByResponsibleInstitution("Heritage")
 for obj in test:
-    print(obj.getTitle())
+    print(obj.getTitle())'''
+
+qh = QueryHandler()
+qh.setDbPathOrUrl("http://192.168.1.57:9999/blazegraph/sparql")
+test = qh.getById("ULAN:500114874")
+print(test)

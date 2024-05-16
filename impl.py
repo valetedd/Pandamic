@@ -386,13 +386,43 @@ class QueryHandler(Handler):
             self.request = sw.SPARQLWrapper(self.endpoint)
             self.request.setReturnFormat(sw.JSON)
             self.request.setQuery(f"""
-            SELECT ?name
+            SELECT ?name ?type ?date ?namePlace ?nameOwner ?nameAuthor
             WHERE {{ ?uri <https://schema.org/identifier>  "{id}" . 
-            {{ ?uri <https://schema.org/name> ?name }} UNION {{ ?uri <https://schema.org/givenName> ?name }} . }}
+            {{ ?uri <https://schema.org/name> ?name ; 
+                    rdf:type ?typeUri ;
+                    <https://schema.org/identifier> ?id .
+                ?typeUri rdfs:label ?type .
+                ?uri <https://schema.org/datePublished> ?date ;
+                     <https://schema.org/spatial> ?uriPlace ;
+                     <https://schema.org/maintainer> ?uriOwner .
+                ?uriPlace rdfs:label ?namePlace .
+                ?uriOwner rdfs:label ?nameOwner .
+                OPTIONAL {{ ?uri <https://schema.org/author> ?uriAuthor .
+                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }}
+                 }} UNION {{ ?uri <https://schema.org/givenName> ?name }} . }}
             """)
             result = self.request.query().convert()
             result = result["results"]["bindings"]
-            result_df = pd.DataFrame({"Entity": pd.Series([row["name"]["value"] for row in result])})
+            for row in result:
+                if id.isdigit():
+                    if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
+                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}) 
+                    elif "nameAuthor" not in list(row.keys()) and "date" in list(row.keys()):
+                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}) 
+                    elif "nameAuthor" in list(row.keys()) and "date" not in list(row.keys()):
+                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([""]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})
+                    elif "nameAuthor" not in list(row.keys()) and "date" not in list(row.keys()):
+                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})
+                else:
+                    result_df = pd.DataFrame({"Person": pd.Series([row["name"]["value"]])})
             return result_df
         except Exception:
             return(Exception)
@@ -668,11 +698,11 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
 ### Test
-obj = MetadataQueryHandler()
-print(obj.dbPathOrURL)
-obj.setDbPathOrUrl("http://192.168.1.15:9999/blazegraph/sparql")
-print(obj.getAllPeople())
-print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
+#obj = MetadataQueryHandler()
+#print(obj.dbPathOrURL)
+#obj.setDbPathOrUrl("http://192.168.1.15:9999/blazegraph/sparql")
+#print(obj.getAllPeople())
+#print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
 ############## MASHUP #################
 
