@@ -1,14 +1,12 @@
 import pandas as pd
-from sqlite3 import connect, OperationalError, OperationalError
+from sqlite3 import connect, OperationalError
 import json
 from util import *
 import rdflib as rdf
 from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
-from urllib.parse import quote, urlencode, quote_plus
-import datetime
-import json
+from datetime import datetime
 
 ############# ENTITIES ###############
 
@@ -104,13 +102,17 @@ class Activity():
         return self.person
     
     def getTool(self) -> set[str]:
-        return self.tool
+        if self.tool is None:
+            return set("")
+        else:
+            return set(self.tool.split(", "))
     
     def getStartDate(self) -> str | None:
         return self.start
     
     def getEndDate(self) -> str | None:
         return self.end
+    
     def refersTo(self) -> CulturalHeritageObject:
         return self.refersToObj
     
@@ -683,8 +685,59 @@ class MetadataQueryHandler(QueryHandler):
 ############## MASHUP #################
 
 class BasicMashup:
-    metadataQuery: list[MetadataQueryHandler] = []
-    processdataQuery: list[ProcessDataQueryHandler] = []
+
+    def __init__(self) -> None:
+        self.metadataQuery: list[MetadataQueryHandler] = []
+        self.processdataQuery: list[ProcessDataQueryHandler] = []
+    
+    @staticmethod
+    def row_to_obj(s: pd.Series, bm) -> None:
+        cult_obj = bm.getEntityById(s["object_id"])
+        curr_type: str = s["type"]
+        match curr_type: 
+            case "acquisition":
+                obj = Acquisition(
+                                institute=s["responsible_institute"], 
+                                technique=s["technique"], 
+                                person=s["responsible_person"], 
+                                tool=s["tool"], 
+                                start=s["start_date"], 
+                                end=s["end_date"], 
+                                refersTo=cult_obj)
+            case "processing":
+                obj = Processing(
+                                institute=s["responsible_institute"], 
+                                person=s["responsible_person"], 
+                                tool=s["tool"], 
+                                start=s["start_date"], 
+                                end=s["end_date"], 
+                                refersTo=cult_obj)                                        
+            case "modelling":
+                obj = Modelling(
+                                institute=s["responsible_institute"], 
+                                person=s["responsible_person"], 
+                                tool=s["tool"], 
+                                start=s["start_date"], 
+                                end=s["end_date"], 
+                                refersTo=cult_obj)
+            case "optimising":
+                obj = Optimising(
+                                institute=s["responsible_institute"], 
+                                person=s["responsible_person"], 
+                                tool=s["tool"], 
+                                start=s["start_date"], 
+                                end=s["end_date"], 
+                                refersTo=cult_obj)                                        
+            case "exporting":
+                obj = Exporting(
+                                institute=s["responsible_institute"], 
+                                person=s["responsible_person"], 
+                                tool=s["tool"], 
+                                start=s["start_date"], 
+                                end=s["end_date"], 
+                                refersTo=cult_obj)
+        return obj
+
 
     def cleanMetadataHandlers(self) -> bool:
         self.metadataQuery.clear()
@@ -727,333 +780,57 @@ class BasicMashup:
 
     @print_attributes
     def getAllActivities(self) -> list[Activity]:
-        result = []
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)                                        
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)                                        
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-        
-        return result
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list()
 
     @print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
-        result = []
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-
-        return result 
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list() 
     
     @print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
-        result = []
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-
-        return result
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list()
     
     @print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
-        result = []
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-
-        return result
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list()
     
     @print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
-        result = []
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-
-        return result
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list()
     
     @print_attributes
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
-        result = []
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
-        for _, row in final_df.iterrows():
-            cult_obj = self.getEntityById(row["object_id"])
-            curr_type: str = row["type"] 
-            match curr_type: 
-                case "acquisition":
-                    obj = Acquisition(
-                                    institute=row["responsible_institute"], 
-                                    technique=row["technique"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "processing":
-                    obj = Processing(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "modelling":
-                    obj = Modelling(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "optimising":
-                    obj = Optimising(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-                case "exporting":
-                    obj = Exporting(
-                                    institute=row["responsible_institute"], 
-                                    person=row["responsible_person"], 
-                                    tool=row["tool"], 
-                                    start=row["start_date"], 
-                                    end=row["end_date"], 
-                                    refersTo=cult_obj)
-            result.append(obj)
-
-        return result
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
+        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        return obj_series.to_list()
     
     @print_attributes
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
@@ -1076,15 +853,19 @@ class BasicMashup:
         return result
     
 ### TEST ###
-# obj = BasicMashup()
-# pqh = ProcessDataQueryHandler()
-# pqh.setDbPathOrUrl("databases/relational.db")
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
+obj = BasicMashup()
+pqh = ProcessDataQueryHandler()
+pqh.setDbPathOrUrl("databases/relational.db")
+obj.addProcessHandler(pqh)
+obj.addProcessHandler(pqh)
+obj.addProcessHandler(pqh)
+obj.getAllActivities()
 # print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
+
+    def __init__(self) -> None:
+        super().__init__()
 
     @print_attributes
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
@@ -1104,54 +885,8 @@ class AdvancedMashup(BasicMashup):
             final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
             final_df.drop_duplicates(inplace=True, ignore_index=True)
             # print(f"Merged df:\n{final_df.head(20)}")
-            result = []
-            for _, row in final_df.iterrows():
-                curr_type: str = row["type"]
-                cult_obj = self.getEntityById(row["object_id"]) 
-                match curr_type:
-                    case "acquisition":
-                        obj = Acquisition(
-                                        institute=row["responsible_institute"], 
-                                        technique=row["technique"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=cult_obj)
-                    case "processing":
-                        obj = Processing(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=cult_obj)
-                    case "modelling":
-                        obj = Modelling(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=cult_obj)
-                    case "optimising":
-                        obj = Optimising(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=cult_obj)
-                    case "exporting":
-                        obj = Exporting(
-                                        institute=row["responsible_institute"], 
-                                        person=row["responsible_person"], 
-                                        tool=row["tool"], 
-                                        start=row["start_date"], 
-                                        end=row["end_date"], 
-                                        refersTo=cult_obj)
-                result.append(obj)
-            return result
+            obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+            return obj_series.to_list()
         except Exception as e:
             print(f"{e}")
             return []
