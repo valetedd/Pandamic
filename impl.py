@@ -262,7 +262,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
     def pushDataToDb(self, path : str) -> bool:
         blzgrph = SPARQLUpdateStore()
         endpoint = self.getDbPathOrURL() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
-
+        print(endpoint)
         def check_yoself_befo_yo_shrek_yoself(subj, pred, obj):
             if "http" not in obj:
                 obj = '"'+obj+'"'

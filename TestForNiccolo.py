@@ -100,24 +100,32 @@ from pprint import pprint
 
 pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 '''
-
-'''mduh = MetadataUploadHandler()
+'''
+mduh = MetadataUploadHandler()
 mdqh = MetadataQueryHandler()
-mdqh.setDbPathOrUrl(pathOrURL="http://192.168.1.57:9999/blazegraph/sparql")
+mduh.setDbPathOrUrl(pathOrURL="http://192.168.1.57:9999/blazegraph/sparql")
 pdqh = ProcessDataQueryHandler()
 pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
-# mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
+mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 # mdqh.setDbPathOrUrl("http://10.201.47.161:9999/blazegraph/sparql")
 # mdqh.getAllCulturalHeritageObjects()
-
+'''
+'''
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
 test = am.getObjectsHandledByResponsibleInstitution("Heritage")
 for obj in test:
     print(obj.getTitle())'''
-
+'''
 qh = QueryHandler()
 qh.setDbPathOrUrl("http://192.168.1.57:9999/blazegraph/sparql")
 test = qh.getById("ULAN:500114874")
 print(test)
+'''
+
+# test2 = MetadataQueryHandler()
+# test1 = MetadataQueryHandler()
+# test1.setDbPathOrUrl("cazzusboia")
+# test2.setDbPathOrUrl("ma chi cazzo è paolo bitta")
+# print(test1.getDbPathOrURL())
