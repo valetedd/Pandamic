@@ -668,19 +668,11 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
 ### Test
-# obj = MetadataQueryHandler()
-# print(MetadataQueryHandler.__dict__)
-# print(obj.__dict__)
-# print(Handler.__dict__)
-# print(obj.dbPathOrURL)
-# obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
-# print(obj.__dict__)
-# print(Handler.__dict__)
-# print(obj.dbPathOrURL)
-# print(Handler.dbPathOrURL)
-# print(obj.getDbPathOrURL())
-# print(obj.getAllPeople())
-# print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
+obj = MetadataQueryHandler()
+print(obj.dbPathOrURL)
+obj.setDbPathOrUrl("http://192.168.1.15:9999/blazegraph/sparql")
+print(obj.getAllPeople())
+print(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
 ############## MASHUP #################
 
@@ -767,7 +759,7 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def getEntityById(self, id: str) -> list[IdentifiableEntity] | None:
+    def getEntityById(self, id: str) -> IdentifiableEntity | None:
         pass
     def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
@@ -853,13 +845,13 @@ class BasicMashup:
         return result
     
 ### TEST ###
-obj = BasicMashup()
-pqh = ProcessDataQueryHandler()
-pqh.setDbPathOrUrl("databases/relational.db")
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.getAllActivities()
+# obj = BasicMashup()
+# pqh = ProcessDataQueryHandler()
+# pqh.setDbPathOrUrl("databases/relational.db")
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.getAllActivities()
 # print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
