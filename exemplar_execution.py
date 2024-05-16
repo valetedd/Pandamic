@@ -55,14 +55,22 @@ metadata_qh = MetadataQueryHandler()
 metadata_qh.setDbPathOrUrl(grp_endpoint)
 
 # Finally, create a advanced mashup object for asking
-# about data
+# about dataclear
 mashup = AdvancedMashup()
 # mashup.addProcessHandler(process_qh)
 mashup.addMetadataHandler(metadata_qh)
 
-result_q1 = mashup.getEntityById("VIAF:1001904j2")
-print(result_q1)
+# result_q1 = mashup.getEntityById("37")
+# print(result_q1)
 # result_q2 = mashup.getAuthorsOfCulturalHeritageObject("1")
 # result_q3 = mashup.getAuthorsOfObjectsAcquiredInTimeFrame("2023-04-01", "2023-05-01")
 # etc...
 # result_q4 = mashup.getActivitiesOnObjectsAuthoredBy("VIAF:100190422")
+# result_q5 = mashup.getAllPeople()
+# print(result_q5[0])
+# result_q6 = mashup.getAllCulturalHeritageObjects()
+# print(result_q6)
+# result__q7 = mashup.getAuthorsOfCulturalHeritageObject("5")
+# print(result__q7)
+# result__q7 = mashup.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422")
+# print(result__q7)

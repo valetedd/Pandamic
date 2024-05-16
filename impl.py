@@ -683,16 +683,16 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
 ### Test
-obj = MetadataQueryHandler()
-pprint(MetadataQueryHandler.__dict__)
-pprint(obj.__dict__)
-pprint(obj.dbPathOrURL)
-obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
-pprint(obj.__dict__)
-pprint(Handler.__dict__)
-pprint(obj.dbPathOrURL)
-pprint(Handler.dbPathOrURL)
-pprint(Handler.setDbPathOrUrl("example"))
+# obj = MetadataQueryHandler()
+# pprint(MetadataQueryHandler.__dict__)
+# pprint(obj.__dict__)
+# pprint(obj.dbPathOrURL)
+# obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
+# pprint(obj.__dict__)
+# pprint(Handler.__dict__)
+# pprint(obj.dbPathOrURL)
+# pprint(Handler.dbPathOrURL)
+# pprint(Handler.setDbPathOrUrl("example"))
 # pprint(obj.getDbPathOrURL())
 # pprint(obj.getAllPeople())
 # pprint(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
@@ -785,53 +785,163 @@ class BasicMashup:
     def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
         df_list =[]
         for handler in self.metadataQuery:
-            try:
-                df = handler.getById(id)
-                print(df)
-                df_list.append(df)
-            except:
-                None
+            df_got = handler.getById(id)
+            
+            if not df_got.empty:
+                print(df_got)
+                df_list.append(df_got)
+
+        if not df_list: 
+            return None       
+        df = pd.concat(df_list).dropna(how='all').reset_index(drop=True)
         
-        if df_list:
+            
+        
+        if not df.empty:
             try:
-                object_type = df["Type"] 
+                df = df.squeeze()
+                object_type = df['Type']
                 match object_type:
                     case "Nautical chart":
-                        return NauticalChart(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return NauticalChart(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Printed volume":
-                        return PrintedVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return PrintedVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Herbarium":
-                        return Herbarium(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Herbarium(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Printed material":
-                        return PrintedMaterial(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return PrintedMaterial(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Specimen":
-                        return Specimen(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Specimen(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Painting":
-                        return Painting(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Painting(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Map":
-                        return Map(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Map(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Manuscript volume":
-                        return ManuscriptVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return ManuscriptVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Manuscript plate":
-                        return ManuscriptPlate(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return ManuscriptPlate(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Model":
-                        return Model(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Model(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     
             except:
-                name = df['Author']
+                name = df
                 return Person(id,name)
             
         else:
             return None 
 
-    def getAllPeople(self, ) -> list[IdentifiableEntity]:
-        pass
-    def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObject]:
-        pass
-    def getAuthorsOfCulturalHeritageObject(self, objectId: str) -> list[Person]:
-        pass
-    def getCulturalHeritageObjectsAuthoredBy(self, personalId: str) -> list[CulturalHeritageObject]:
-        pass
+    def getAllPeople(self) -> list[Person]:
+        df_list =[]
+        for handler in self.metadataQuery:
+            df_got = handler.getAllPeople()
+            df_list.append(df_got)
+
+        person_list = []
+        for df in df_list:
+            for index, row in df.iterrows():
+                if 'Name' in row and 'Id' in row:
+                    person_list.append(Person(row['Id'], row['Name']))
+
+        return person_list
+
+
+
+    def getAllCulturalHeritageObjects(self) -> list[CulturalHeritageObject]:
+        df_list =[]
+        for handler in self.metadataQuery:
+            df_got = handler.getAllCulturalHeritageObjects()
+            df_list.append(df_got)
+
+        culturalHeritageObject_list = []
+        for df in df_list:
+            for index, row in df.iterrows():
+                if 'Type' in row:
+                    df = df.squeeze()
+                    obj = None
+                    object_type = row['Type']
+                    if object_type == "Nautical chart":
+                        obj = NauticalChart(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Printed volume":
+                        obj = PrintedVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Herbarium":
+                        obj = Herbarium(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Printed material":
+                        obj = PrintedMaterial(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Specimen":
+                        obj = Specimen(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Painting":
+                        obj = Painting(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Map":
+                        obj = Map(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Manuscript volume":
+                        obj = ManuscriptVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Manuscript plate":
+                        obj = ManuscriptPlate(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Model":
+                        obj = Model(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    
+                    if obj:
+                        culturalHeritageObject_list.append(obj)
+ 
+        return culturalHeritageObject_list
+
+    def getAuthorsOfCulturalHeritageObject(self, id: str) -> list[Person]:
+        df_list =[]
+        for handler in self.metadataQuery:
+            df_got = handler.getAuthorsOfCulturalHeritageObject(id)
+            df_list.append(df_got)
+        
+        
+
+        person_list = []
+        for df in df_list:
+            for index, row in df.iterrows():
+                if 'Name' in row and 'Id' in row:
+                    person_list.append(Person(row['Id'],row['Name']))
+
+        return person_list
+
+    def getCulturalHeritageObjectsAuthoredBy(self, id: str) -> list[CulturalHeritageObject]:
+        df_list =[]
+        for handler in self.metadataQuery:
+            df_got = handler.getCulturalHeritageObjectsAuthoredBy(id)
+            df_list.append(df_got)
+        print(df_list)
+        
+
+        culturalHeritageObject_list = []
+        for df in df_list:
+            for index, row in df.iterrows():
+                if 'Type' in row:
+                    df = df.squeeze()
+                    print(df)
+                    obj = None
+                    object_type = row['Type']
+                    if object_type == "Nautical chart":
+                        obj = NauticalChart(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Printed volume":
+                        obj = PrintedVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Herbarium":
+                        obj = Herbarium(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Printed material":
+                        obj = PrintedMaterial(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Specimen":
+                        obj = Specimen(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Painting":
+                        obj = Painting(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Map":
+                        obj = Map(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Manuscript volume":
+                        obj = ManuscriptVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Manuscript plate":
+                        obj = ManuscriptPlate(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    elif object_type == "Model":
+                        obj = Model(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                    
+                    if obj:
+                        culturalHeritageObject_list.append(obj)
+ 
+        return culturalHeritageObject_list
 
     @print_attributes
     def getAllActivities(self) -> list[Activity]:
@@ -908,13 +1018,13 @@ class BasicMashup:
         return result
     
 ### TEST ###
-obj = BasicMashup()
-pqh = ProcessDataQueryHandler()
-pqh.setDbPathOrUrl("databases/relational.db")
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.getAllActivities()
+# obj = BasicMashup()
+# pqh = ProcessDataQueryHandler()
+# pqh.setDbPathOrUrl("databases/relational.db")
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.getAllActivities()
 # print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
