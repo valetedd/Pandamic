@@ -263,7 +263,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         blzgrph = SPARQLUpdateStore()
         endpoint = self.getDbPathOrURL() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
         print(endpoint)
-        def check_yoself_befo_yo_shrek_yoself(subj, pred, obj):
+        def check_if_triples_exists(subj, pred, obj):
             if "http" not in obj:
                 obj = '"'+obj+'"'
             else:
@@ -284,7 +284,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         
         PDM = rdf.Namespace("http://ourwebsite/") #our base URI
         graph_to_upload=rdf.Graph() # creating the graph that i will upload
-        graph_to_upload.bind("pdm", PDM)
+        graph_to_upload.bind("pdm", PDM)                                           # to remove!
         
         dict_of_obj_uri=dict()      
         our_obj = list(md_Series["type"].unique())
@@ -299,68 +299,62 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         
         for idx, row in md_Series.iterrows():
             # Internal_ID="ID"+str(idx)
+            title = row["name"]
             subj = PDM + row["identifier"] # generating a specific URI for each item
             
             for pred, obj in row.items():
                 
                 #added some general if clause to include that the triple isn't considered if the data is missing, unless it's the date that can be absent
-                if len(obj) == 0 and pred != "datePublished":
+                if len(obj) == 0 and pred != "datePublished" and len(obj) == 0 and pred != "author":
+                    print(f"the item {title} doesn't conform to the model due to missing data. This object won't be returned by Mashup methods")
+                # elif pred == "datePublished" and len(obj) == 0:
+                #     if not(check_if_triples_exists(subj, SDO+pred, obj)):
+                #                 graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
+                elif len(obj) == 0 and pred == "datePublished" or len(obj) == 0 and pred == "author":
                     pass
-                elif pred == "datePublished" and len(obj) == 0:
-                    if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
-                                graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
                 else:
                     if pred=="author":
-                        if len(obj)==0:
-                                pass
-                        else:
-                            list_of_auth = []
-                            if ";" in obj:
-                                list_of_auth.extend(obj.split("; "))
+                        list_of_auth = []
+                        list_of_auth.extend(obj.split("; "))
+                        
+                        for single_auth in list_of_auth:
+                            obj_list = single_auth.split(" (")
+                            name=obj_list[0] #assigning the actual name to this variable
+                            author_ID=obj_list[1]
+                            author_ID=author_ID[0:-1]
+                            if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
+                                author_url = rdf.URIRef("http://viaf.org/" + author_ID.replace(":","/").lower())
+                            elif "ULAN" in author_ID:
+                                author_url = rdf.URIRef("http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower())
                             else:
-                                list_of_auth.append(obj)
+                                author_url = rdf.URIRef(PDM + author_ID.replace(":","/").lower())
                             
-                            for single_auth in list_of_auth:
-                                obj_list = single_auth.split(" (")
-                                name=obj_list[0] #assigning the actual name to this variable
-                                author_ID=obj_list[1]
-                                author_ID=author_ID[0:-1]
-                                if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
-                                    author_url = rdf.URIRef("http://viaf.org/" + author_ID.replace(":","/").lower())
-                                elif "ULAN" in author_ID:
-                                    author_url = rdf.URIRef("http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower())
-                                else:
-                                    author_url = rdf.URIRef(PDM + author_ID.replace(":","/").lower())
-                                if name not in authors_viaf: # adding the author to the dictionary if they're not present
-                                    authors_viaf[name] = author_ID
-                                # aut = authors_viaf[name]
-                                
-                                if not(check_yoself_befo_yo_shrek_yoself(author_url, SDO.identifier, author_ID)):
-                                    graph_to_upload.add((rdf.URIRef(author_url),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
+                            if not(check_if_triples_exists(author_url, SDO.identifier, author_ID)):
+                                graph_to_upload.add((rdf.URIRef(author_url),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
 
-                                if not(check_yoself_befo_yo_shrek_yoself(subj, SDO.author, author_url)):
-                                    graph_to_upload.add((rdf.URIRef(subj),SDO.author,rdf.URIRef(author_url)))          # URI of the book-URI of the author
+                            if not(check_if_triples_exists(subj, SDO.author, author_url)):
+                                graph_to_upload.add((rdf.URIRef(subj),SDO.author,rdf.URIRef(author_url)))          # URI of the book-URI of the author
 
-                                if not(check_yoself_befo_yo_shrek_yoself(author_url, SDO.givenName, name)):
-                                    graph_to_upload.add((rdf.URIRef(author_url),SDO.givenName,rdf.Literal(name)))  # URI of the author - its name
+                            if not(check_if_triples_exists(author_url, SDO.givenName, name)):
+                                graph_to_upload.add((rdf.URIRef(author_url),SDO.givenName,rdf.Literal(name)))  # URI of the author - its name
                     else:
                         if pred == "type":
-                            if not(check_yoself_befo_yo_shrek_yoself(subj, RDF.type, dict_of_obj_uri[obj])):
+                            if not(check_if_triples_exists(subj, RDF.type, dict_of_obj_uri[obj])):
                                 graph_to_upload.add((rdf.URIRef(subj),RDF.type,rdf.URIRef(dict_of_obj_uri[obj]))) # 2 triples, book's URI - type's URI,
                             
-                            if not(check_yoself_befo_yo_shrek_yoself(dict_of_obj_uri[obj], RDFS.label, obj)):
+                            if not(check_if_triples_exists(dict_of_obj_uri[obj], RDFS.label, obj)):
                                 graph_to_upload.add((rdf.URIRef(dict_of_obj_uri[obj]),RDFS.label,rdf.Literal(obj)))  # type's URI - type's name. Since
                             # graphs don't allow redundancy, only one of the second triple will be added for each type.
 
                         elif pred == "maintainer" or pred=="spatial":
-                            if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, dict_of_obj_uri[obj])):
+                            if not(check_if_triples_exists(subj, SDO+pred, dict_of_obj_uri[obj])):
                                 graph_to_upload.add((rdf.URIRef(subj), rdf.URIRef(SDO+pred), rdf.URIRef(dict_of_obj_uri[obj]))) #Same concept for the other 2, but
                             
-                            if not(check_yoself_befo_yo_shrek_yoself(dict_of_obj_uri[obj], RDFS.label, obj)):
+                            if not(check_if_triples_exists(dict_of_obj_uri[obj], RDFS.label, obj)):
                                 graph_to_upload.add((rdf.URIRef(dict_of_obj_uri[obj]), RDFS.label, rdf.Literal(obj)))  # they use SDO instead of RDF
                         
                         else:
-                           if not(check_yoself_befo_yo_shrek_yoself(subj, SDO+pred, obj)):
+                           if not(check_if_triples_exists(subj, SDO+pred, obj)):
                                graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
         
         try:                                                                     #added try condition that results in a boolean output
