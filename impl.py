@@ -583,13 +583,13 @@ class MetadataQueryHandler(QueryHandler):
                      rdf:type ?typeUri ;
                      <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type .
-                ?uri <https://schema.org/datePublished> ?date ;
-                     <https://schema.org/spatial> ?uriPlace ;
+                ?uri <https://schema.org/spatial> ?uriPlace ;
                      <https://schema.org/maintainer> ?uriOwner .
                 ?uriPlace rdfs:label ?namePlace .
                 ?uriOwner rdfs:label ?nameOwner .
                 OPTIONAL { ?uri <https://schema.org/author> ?uriAuthor .
-                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }
+                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . 
+                ?uri <https://schema.org/datePublished> ?date . }
                  }
         """
         
@@ -652,18 +652,34 @@ class MetadataQueryHandler(QueryHandler):
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
-        SELECT ?obj ?type ?id ?uri
+        SELECT ?obj ?type ?id ?uri ?date ?namePlace ?nameOwner
         WHERE {{ ?uri <https://schema.org/name> ?obj ;
                      rdf:type ?typeUri ;
                      <https://schema.org/identifier> ?id ;
                      <https://schema.org/author> ?persUri .
                  ?typeUri rdfs:label ?type .
-                 ?persUri <https://schema.org/identifier> '{personId}' . }}
+                 ?uri <https://schema.org/spatial> ?uriPlace ;
+                      <https://schema.org/maintainer> ?uriOwner .
+                 ?uriPlace rdfs:label ?namePlace .
+                 ?uriOwner rdfs:label ?nameOwner .
+                 ?persUri <https://schema.org/identifier> '{personId}' . 
+                 OPTIONAL {{?uri <https://schema.org/datePublished> ?date . }}
+                 }}
         """)
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
-        self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
-                                       "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result])}) 
+
+        self.result_rows = []
+
+        for row in self.result:
+            if "date" in list(row.keys()):
+                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
+            elif "date" not in list(row.keys()):
+               self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
+                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
         return self.result_df
 
 ### Test
