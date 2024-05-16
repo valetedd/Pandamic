@@ -666,16 +666,16 @@ class MetadataQueryHandler(QueryHandler):
         return self.result_df
 
 ### Test
-obj = MetadataQueryHandler()
-pprint(MetadataQueryHandler.__dict__)
-pprint(obj.__dict__)
-pprint(obj.dbPathOrURL)
-obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
-pprint(obj.__dict__)
-pprint(Handler.__dict__)
-pprint(obj.dbPathOrURL)
-pprint(Handler.dbPathOrURL)
-pprint(Handler.setDbPathOrUrl("example"))
+# obj = MetadataQueryHandler()
+# pprint(MetadataQueryHandler.__dict__)
+# pprint(obj.__dict__)
+# pprint(obj.dbPathOrURL)
+# obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
+# pprint(obj.__dict__)
+# pprint(Handler.__dict__)
+# pprint(obj.dbPathOrURL)
+# pprint(Handler.dbPathOrURL)
+# pprint(Handler.setDbPathOrUrl("example"))
 # pprint(obj.getDbPathOrURL())
 # pprint(obj.getAllPeople())
 # pprint(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
@@ -768,40 +768,46 @@ class BasicMashup:
     def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
         df_list =[]
         for handler in self.metadataQuery:
-            try:
-                df = handler.getById(id)
-                print(df)
-                df_list.append(df)
-            except:
-                None
+            df_got = handler.getById(id)
+            
+            if not df_got.empty:
+                print(df_got)
+                df_list.append(df_got)
+
+        if not df_list: 
+            return None       
+        df = pd.concat(df_list).dropna(how='all').reset_index(drop=True)
         
-        if df_list:
+            
+        
+        if not df.empty:
             try:
-                object_type = df["Type"] 
+                df = df.squeeze()
+                object_type = df['Type']
                 match object_type:
                     case "Nautical chart":
-                        return NauticalChart(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return NauticalChart(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Printed volume":
-                        return PrintedVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return PrintedVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Herbarium":
-                        return Herbarium(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Herbarium(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Printed material":
-                        return PrintedMaterial(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return PrintedMaterial(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Specimen":
-                        return Specimen(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Specimen(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Painting":
-                        return Painting(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Painting(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Map":
-                        return Map(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Map(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Manuscript volume":
-                        return ManuscriptVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return ManuscriptVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Manuscript plate":
-                        return ManuscriptPlate(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return ManuscriptPlate(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     case "Model":
-                        return Model(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                        return Model(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
                     
             except:
-                name = df['Author']
+                name = df
                 return Person(id,name)
             
         else:
@@ -891,13 +897,13 @@ class BasicMashup:
         return result
     
 ### TEST ###
-obj = BasicMashup()
-pqh = ProcessDataQueryHandler()
-pqh.setDbPathOrUrl("databases/relational.db")
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.addProcessHandler(pqh)
-obj.getAllActivities()
+# obj = BasicMashup()
+# pqh = ProcessDataQueryHandler()
+# pqh.setDbPathOrUrl("databases/relational.db")
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.addProcessHandler(pqh)
+# obj.getAllActivities()
 # print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
