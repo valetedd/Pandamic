@@ -27,29 +27,29 @@ from impl import MetadataUploadHandler, MetadataQueryHandler
 from impl import AdvancedMashup
 # Once all the classes are imported, first create the relational
 # database using the related source data
-rel_path = "relational.db"
-process = ProcessDataUploadHandler()
-process.setDbPathOrUrl(rel_path)
-process.pushDataToDb("data/process.json")
+# rel_path = "relational.db"
+# process = ProcessDataUploadHandler()
+# process.setDbPathOrUrl(rel_path)
+# process.pushDataToDb("data/process.json")
 # Please remember that one could, in principle, push one or more files
 # calling the method one or more times (even calling the method twice
 # specifying the same file!)
 
 # Then, create the graph database (remember first to run the
 # Blazegraph instance) using the related source data
-blaz_url = "" # copy-paste url appearing when the blazegraph instance is run
+blaz_url = "http://192.168.1.87:9999/blazegraph/" # copy-paste url appearing when the blazegraph instance is run
 grp_endpoint =  blaz_url + "sparql"
-metadata = MetadataUploadHandler()
-metadata.setDbPathOrUrl(grp_endpoint)
-metadata.pushDataToDb("data/meta.csv")
+# metadata = MetadataUploadHandler()
+# metadata.setDbPathOrUrl(grp_endpoint)
+# metadata.pushDataToDb("data/meta.csv")
 # Please remember that one could, in principle, push one or more files
 # calling the method one or more times (even calling the method twice
 # specifying the same file!)
 
 # In the next passage, create the query handlers for both
 # the databases, using the related classes
-process_qh = ProcessDataQueryHandler()
-process_qh.setDbPathOrUrl(rel_path)
+# process_qh = ProcessDataQueryHandler()
+# process_qh.setDbPathOrUrl(rel_path)
 
 metadata_qh = MetadataQueryHandler()
 metadata_qh.setDbPathOrUrl(grp_endpoint)
@@ -57,10 +57,11 @@ metadata_qh.setDbPathOrUrl(grp_endpoint)
 # Finally, create a advanced mashup object for asking
 # about data
 mashup = AdvancedMashup()
-mashup.addProcessHandler(process_qh)
+# mashup.addProcessHandler(process_qh)
 mashup.addMetadataHandler(metadata_qh)
 
-result_q1 = mashup.getAllActivities()
+result_q1 = mashup.getEntityById("VIAF:1001904j2")
+print(result_q1)
 # result_q2 = mashup.getAuthorsOfCulturalHeritageObject("1")
 # result_q3 = mashup.getAuthorsOfObjectsAcquiredInTimeFrame("2023-04-01", "2023-05-01")
 # etc...

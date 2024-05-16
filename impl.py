@@ -7,6 +7,7 @@ from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
 from datetime import datetime
+from pprint import pprint
 
 ############# ENTITIES ###############
 
@@ -789,8 +790,48 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def getEntityById(self, id: str) -> IdentifiableEntity | None:
-        pass
+    def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
+        df_list =[]
+        for handler in self.metadataQuery:
+            try:
+                df = handler.getById(id)
+                print(df)
+                df_list.append(df)
+            except:
+                None
+        
+        if df_list:
+            try:
+                object_type = df["Type"] 
+                match object_type:
+                    case "Nautical chart":
+                        return NauticalChart(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Printed volume":
+                        return PrintedVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Herbarium":
+                        return Herbarium(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Printed material":
+                        return PrintedMaterial(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Specimen":
+                        return Specimen(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Painting":
+                        return Painting(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Map":
+                        return Map(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Manuscript volume":
+                        return ManuscriptVolume(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Manuscript plate":
+                        return ManuscriptPlate(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    case "Model":
+                        return Model(id,df['Object'],df['Date'],df['Owner'],df['Place'],df['hasAuther'])
+                    
+            except:
+                name = df['Author']
+                return Person(id,name)
+            
+        else:
+            return None 
+
     def getAllPeople(self, ) -> list[IdentifiableEntity]:
         pass
     def getAllCulturalHeritageObjects(self, ) -> list[CulturalHeritageObject]:
