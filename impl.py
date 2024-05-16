@@ -749,7 +749,7 @@ class BasicMashup:
     def getAllActivities(self) -> list[Activity]:
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list()
@@ -758,7 +758,7 @@ class BasicMashup:
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list() 
@@ -767,7 +767,7 @@ class BasicMashup:
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list()
@@ -776,7 +776,7 @@ class BasicMashup:
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list()
@@ -785,7 +785,7 @@ class BasicMashup:
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list()
@@ -794,7 +794,7 @@ class BasicMashup:
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        if len(self.processdataQuery) > 0:
+        if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
         return obj_series.to_list()
