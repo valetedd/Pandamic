@@ -1,3 +1,4 @@
 /stuff/
 /__pycache__/
 databases/blazegraph.jnl
+.ipynb_checkpoints

@@ -19,18 +19,6 @@ from impl import MetadataUploadHandler, ProcessDataUploadHandler
 from impl import MetadataQueryHandler, ProcessDataQueryHandler
 from impl import AdvancedMashup
 from impl import Person, CulturalHeritageObject, Activity, Acquisition
-import pandas as pd
-from sqlite3 import connect, OperationalError, OperationalError
-import json
-from util import *
-import rdflib as rdf
-from rdflib.namespace import SDO, RDF, RDFS
-from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
-import SPARQLWrapper as sw
-from urllib.parse import quote, urlencode, quote_plus
-import datetime
-import json
-from pprint import pprint
 
 # REMEMBER: before launching the tests, please run the Blazegraph instance!
 
@@ -43,8 +31,8 @@ class TestProjectBasic(unittest.TestCase):
     # launch of the database.
     metadata = "data" + sep + "meta.csv"
     process = "data" + sep + "process.json"
-    relational = "." + sep + "relational.db"
-    graph = "http://127.0.0.1:9999/blazegraph/sparql"
+    relational = "databases" + sep + "relational.db"
+    graph = "http://192.168.1.10:9999/blazegraph/sparql"
     
     def test_01_MetadataUploadHandler(self):
         u = MetadataUploadHandler()
@@ -79,8 +67,7 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getById("just_a_test"), DataFrame)
 
         self.assertIsInstance(q.getAllActivities(), DataFrame)
-        self.assertIsInstance(q.getActivitiesByResponsibleInstitution(
-            "just_a_test"), DataFrame)
+        self.assertIsInstance(q.getActivitiesByResponsibleInstitution("just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesByResponsiblePerson("just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesUsingTool("just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesStartedAfter("1088-01-01"), DataFrame)
@@ -175,4 +162,3 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(r, list)
         for i in r:
             self.assertIsInstance(i, Person)   
-

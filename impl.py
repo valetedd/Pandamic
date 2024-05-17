@@ -147,7 +147,7 @@ class Handler(object):
     
     dbPathOrURL = ""
 
-    def getDbPathOrURL(self):
+    def getDbPathOrUrl(self):
         return self.dbPathOrURL
     
     def setDbPathOrUrl(self, pathOrURL: str) -> bool:
@@ -168,14 +168,14 @@ class Handler(object):
 ### TESTS ###
 # h = Handler()
 # h.setDbPathOrUrl("mamma")
-# print(h.getDbPathOrURL())
+# print(h.getDbPathOrUrl())
 #############
         
 class UploadHandler(Handler):
 
     def pushDataToDb(self, path: str) -> bool:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             if path.endswith(".csv"):
                 meta = MetadataUploadHandler()
                 meta.setDbPathOrUrl(db)
@@ -196,7 +196,7 @@ class UploadHandler(Handler):
             print("File not found. Try specifying a different path")
             return False
         except OperationalError:
-            print("Upload to db failed. Try resetting the db path or check for inconsistencies in your data")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return False
         except TypeError:
             print("Please specify a path or URL")
@@ -221,7 +221,7 @@ class ProcessDataUploadHandler(UploadHandler):
             act_df.insert(0, "internal_id",int_ids) 
 
             # Uploading data to the selected db       
-            db = self.getDbPathOrURL()        
+            db = self.getDbPathOrUrl()        
             types = act_df["type"].unique()
             with connect(db) as con:
                 for t in types:
@@ -242,7 +242,7 @@ class ProcessDataUploadHandler(UploadHandler):
             print("File not found. Try specifying a different path")
             return False
         except OperationalError:
-            print("Upload to db failed. Try resetting the db path or check for inconsistencies in your data")
+            print("Connection to db failed. Try resetting the db path or check the well-formedness of the JSON file")
             return False
         except TypeError:
             print("Please specify the path of the JSON file you want to upload")
@@ -262,7 +262,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
     
     def pushDataToDb(self, path : str) -> bool:
         blzgrph = SPARQLUpdateStore()
-        endpoint = self.getDbPathOrURL() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
+        endpoint = self.getDbPathOrUrl() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
         print(endpoint)
         def check_if_triples_exists(subj, pred, obj):
             if "http" not in obj:
@@ -377,7 +377,7 @@ class QueryHandler(Handler):
     
     def getById(self, id: str) -> pd.DataFrame:
         try:
-            self.endpoint = super().getDbPathOrURL()
+            self.endpoint = super().getDbPathOrUrl()
             self.request = sw.SPARQLWrapper(self.endpoint)
             self.request.setReturnFormat(sw.JSON)
             self.request.setQuery(f"""
@@ -426,7 +426,7 @@ class ProcessDataQueryHandler(QueryHandler):
 
     def getAllActivities(self) -> pd.DataFrame:
         try:    
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             cursor.execute("""SELECT * FROM acquisitionData UNION 
@@ -438,12 +438,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
     
     def getActivitiesByResponsibleInstitution(self, input_string: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             cursor.execute(f"""SELECT * FROM acquisitionData WHERE responsible_institute LIKE '%{input_string}%' UNION
@@ -456,12 +456,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
 
     def getActivitiesByResponsiblePerson(self, input_string: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             cursor.execute(f"""SELECT * FROM acquisitionData WHERE responsible_person LIKE '%{input_string}%' UNION
@@ -474,12 +474,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
         
     def getActivitiesUsingTool(self, input_string: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             cursor.execute(f"""SELECT * FROM acquisitionData WHERE tool LIKE '%{input_string}%' UNION
@@ -492,12 +492,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
         
     def getActivitiesStartedAfter(self, input_date: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
@@ -514,12 +514,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
 
     def getActivitiesEndedBefore(self, input_date: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
@@ -536,12 +536,12 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
         
     def getAcquisitionsByTechnique(self, input_string: str) -> pd.DataFrame:
         try:
-            db = self.getDbPathOrURL()
+            db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM acquisitionData WHERE technique LIKE '%{input_string}%'")
@@ -549,7 +549,7 @@ class ProcessDataQueryHandler(QueryHandler):
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
         except OperationalError:
-            print("File not found. Try specifying a different path")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
 
 class MetadataQueryHandler(QueryHandler):  
@@ -558,7 +558,7 @@ class MetadataQueryHandler(QueryHandler):
     
     # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
     def getAllPeople(self) -> pd.DataFrame:
-        self.endpoint = super().getDbPathOrURL()
+        self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.request.setQuery("""
@@ -574,7 +574,7 @@ class MetadataQueryHandler(QueryHandler):
 
     # Step 3. do it again  - in this case the query is more complex
     def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
-        self.endpoint = super().getDbPathOrURL()
+        self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.query = """
@@ -630,7 +630,7 @@ class MetadataQueryHandler(QueryHandler):
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
-        self.endpoint = super().getDbPathOrURL()
+        self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
@@ -648,7 +648,7 @@ class MetadataQueryHandler(QueryHandler):
     
     # Step 5. someone stop me (I've done it again)
     def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
-        self.endpoint = super().getDbPathOrURL()
+        self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
@@ -680,22 +680,8 @@ class MetadataQueryHandler(QueryHandler):
                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
+        self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
         return self.result_df
-
-### Test
-# obj = MetadataQueryHandler()
-# pprint(MetadataQueryHandler.__dict__)
-# pprint(obj.__dict__)
-# pprint(obj.dbPathOrURL)
-# obj.setDbPathOrUrl("http://192.168.1.8:9999/blazegraph/sparql")
-# pprint(obj.__dict__)
-# pprint(Handler.__dict__)
-# pprint(obj.dbPathOrURL)
-# pprint(Handler.dbPathOrURL)
-# pprint(Handler.setDbPathOrUrl("example"))
-# pprint(obj.getDbPathOrURL())
-# pprint(obj.getAllPeople())
-# pprint(obj.getCulturalHeritageObjectsAuthoredBy("VIAF:100190422"))
 
 ############## MASHUP #################
 
@@ -706,8 +692,8 @@ class BasicMashup:
         self.processdataQuery: list[ProcessDataQueryHandler] = []
     
     @staticmethod
-    def row_to_obj(s: pd.Series, bm) -> None:
-        cult_obj = bm.getEntityById(s["object_id"])
+    def row_to_obj(s: pd.Series, refersTo_dict) -> Activity:
+        cult_obj = refersTo_dict.get(s["object_id"])
         curr_type: str = s["type"]
         match curr_type: 
             case "acquisition":
@@ -764,7 +750,7 @@ class BasicMashup:
         print("ProcessData handlers succesfully reset")
         return True
     
-    def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool: # maybe checking if the same handler is already in the list?
+    def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool: 
         try:
             self.metadataQuery.append(handler)
             print("Handler succesfully added to the MetaData handlers-list")
@@ -773,7 +759,7 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
 
-    def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:  # maybe checking if the same handler is already in the list?
+    def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:  
         try:
             self.processdataQuery.append(handler)
             print("Handler succesfully added to the ProcessData handlers-list")
@@ -788,7 +774,6 @@ class BasicMashup:
             df_got = handler.getById(id)
             
             if not df_got.empty:
-                print(df_got)
                 df_list.append(df_got)
 
         if not df_list: 
@@ -829,7 +814,7 @@ class BasicMashup:
             
         else:
             return None 
-
+        
     def getAllPeople(self) -> list[Person]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -905,16 +890,13 @@ class BasicMashup:
         df_list =[]
         for handler in self.metadataQuery:
             df_got = handler.getCulturalHeritageObjectsAuthoredBy(id)
-            df_list.append(df_got)
-        print(df_list)
-        
+            df_list.append(df_got)        
 
         culturalHeritageObject_list = []
         for df in df_list:
             for index, row in df.iterrows():
                 if 'Type' in row:
                     df = df.squeeze()
-                    print(df)
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
@@ -946,63 +928,76 @@ class BasicMashup:
     @print_attributes
     def getAllActivities(self) -> list[Activity]:
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
 
     @print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list() 
     
     @print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
     @print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
     @print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
     @print_attributes
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-        obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+        unique_ids = final_df["object_id"].unique()
+        cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
     @print_attributes
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
         df_list = [handler.getAcquisitionByTechnique(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, join="inner", ignore_index=True)
-        final_df.drop_duplicates(inplace=True, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True)
+        if len(self.processdataQuery) > 1:
+            final_df.drop_duplicates(inplace=True, ignore_index=True)
         for _, row in final_df.iterrows():
             cult_obj = self.getEntityById(row["object_id"])
             obj = Acquisition(
@@ -1036,21 +1031,22 @@ class AdvancedMashup(BasicMashup):
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if len(self.processdataQuery) == 0:
-                print("No ProcessdataQueryHandler was specified for the mashup process. Please add at least one")
+                print("No ProcessdataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
                 return []
             if len(self.metadataQuery) == 0:
-                print("No MetadataQueryHandler was specified for the mashup process. Please add at least one")
+                print("No MetadataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
                 return []
             mdf_list = [m_handler.getCulturalHeritageObjectsAuthoredBy(personId) for m_handler in self.metadataQuery]
             pdf_list = [p_handler.getAllActivities() for p_handler in self.processdataQuery]
-            m_conc_df = pd.concat(mdf_list, join="outer", ignore_index=True) 
+            m_conc_df = pd.concat(mdf_list, ignore_index=True) 
             # print(f"MQlist concatenated:\n{m_conc_df}")
-            p_conc_df = pd.concat(pdf_list, join="outer", ignore_index=True)
+            p_conc_df = pd.concat(pdf_list, ignore_index=True)
             # print(f"PQlist concatenated:\n{p_conc_df}")
             final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
             final_df.drop_duplicates(inplace=True, ignore_index=True)
-            # print(f"Merged df:\n{final_df.head(20)}")
-            obj_series = final_df.apply(lambda x: self.row_to_obj(x, self), axis=1)
+            unique_ids = final_df["object_id"].unique()
+            cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
+            obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
             return obj_series.to_list()
         except Exception as e:
             print(f"{e}")
@@ -1058,13 +1054,14 @@ class AdvancedMashup(BasicMashup):
 
     def getObjectsHandledByResponsiblePerson(self, partialName: str):
         pass
+
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
             if len(self.processdataQuery) == 0:                                                  # checking if there are any PDQHs in the attribute 
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                print("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
                 return []
             if len(self.metadataQuery) == 0:                                                      # same but for the MDQHs
-                print("No MetadataQueryHandler set for the mashup process. Please add at least one")
+                print("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
                 return []
             else:                                        # get the DFs using the corresponding methods using a quick in-line for loop
                 pdf_list = [pd_handler.getActivitiesByResponsibleInstitution(partialName) for pd_handler in self.processdataQuery]
