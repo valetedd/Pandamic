@@ -164,12 +164,7 @@ class Handler(object):
         except TypeError:
             print("Please specify a path or URL")
             return False
-            
-### TESTS ###
-# h = Handler()
-# h.setDbPathOrUrl("mamma")
-# print(h.getDbPathOrUrl())
-#############
+        
         
 class UploadHandler(Handler):
 
@@ -794,8 +789,6 @@ class BasicMashup:
         if not df_list: 
             return None       
         df = pd.concat(df_list).dropna(how='all').reset_index(drop=True)
-        
-            
         
         if not df.empty:
             try:
