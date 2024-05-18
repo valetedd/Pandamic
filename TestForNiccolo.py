@@ -100,16 +100,20 @@ from pprint import pprint
 
 pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 '''
-'''
-mduh = MetadataUploadHandler()
-# mdqh = MetadataQueryHandler()
-mduh.setDbPathOrUrl(pathOrURL="http://192.168.1.57:9999/blazegraph/sparql")
+
+#mduh = MetadataUploadHandler()
+mdqh = MetadataQueryHandler()
+mdqh.setDbPathOrUrl(pathOrURL="http://192.168.1.20:9999/blazegraph/sparql")
 # pdqh = ProcessDataQueryHandler()
 # pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
-mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
+#mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 # mdqh.setDbPathOrUrl("http://10.201.47.161:9999/blazegraph/sparql")
 # mdqh.getAllCulturalHeritageObjects()
-'''
+
+print(mdqh.getCulturalHeritageObjectsAuthoredBy("pipo"))
+
+
+
 '''
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)

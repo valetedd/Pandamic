@@ -654,9 +654,9 @@ class MetadataQueryHandler(QueryHandler):
         self.request.setQuery(f"""
         SELECT ?obj ?type ?id ?uri ?date ?namePlace ?nameOwner
         WHERE {{ ?uri <https://schema.org/name> ?obj ;
-                     rdf:type ?typeUri ;
-                     <https://schema.org/identifier> ?id ;
-                     <https://schema.org/author> ?persUri .
+                      rdf:type ?typeUri ;
+                      <https://schema.org/identifier> ?id ;
+                      <https://schema.org/author> ?persUri .
                  ?typeUri rdfs:label ?type .
                  ?uri <https://schema.org/spatial> ?uriPlace ;
                       <https://schema.org/maintainer> ?uriOwner .
@@ -680,7 +680,11 @@ class MetadataQueryHandler(QueryHandler):
                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
-        self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+        try:
+            self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+        except:
+            self.result_df = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Date Publishing", "Place", "Owner"])
+            
         return self.result_df
 
 ############## MASHUP #################
