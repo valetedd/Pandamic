@@ -696,7 +696,7 @@ class BasicMashup:
         self.processdataQuery: list[ProcessDataQueryHandler] = []
     
     @staticmethod
-    def row_to_obj(s: pd.Series, refersTo_dict) -> Activity:
+    def row_to_obj(s: pd.Series, refersTo_dict: dict) -> Activity:
         cult_obj = refersTo_dict.get(s["object_id"])
         curr_type: str = s["type"]
         match curr_type: 
@@ -756,6 +756,8 @@ class BasicMashup:
     
     def addMetadataHandler(self, handler: MetadataQueryHandler) -> bool: 
         try:
+            if not isinstance(handler, MetadataQueryHandler):
+                raise ValueError("Input has to be a MetadataQueryHandler object")
             self.metadataQuery.append(handler)
             print("Handler succesfully added to the MetaData handlers-list")
             return True
@@ -765,6 +767,8 @@ class BasicMashup:
 
     def addProcessHandler(self, handler: ProcessDataQueryHandler) -> bool:  
         try:
+            if not isinstance(handler, ProcessDataQueryHandler):
+                raise ValueError("Input has to be a ProcessDataQueryHandler object")
             self.processdataQuery.append(handler)
             print("Handler succesfully added to the ProcessData handlers-list")
             return True
@@ -929,7 +933,7 @@ class BasicMashup:
  
         return culturalHeritageObject_list
 
-    @print_attributes
+    
     def getAllActivities(self) -> list[Activity]:
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -940,7 +944,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
 
-    @print_attributes
+    
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -951,7 +955,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list() 
     
-    @print_attributes
+    
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -962,7 +966,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
-    @print_attributes
+    
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -973,7 +977,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
-    @print_attributes
+    
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -984,7 +988,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
-    @print_attributes
+    
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -995,7 +999,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
         return obj_series.to_list()
     
-    @print_attributes
+    
     def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
         df_list = [handler.getAcquisitionByTechnique(partialName) for handler in self.processdataQuery]
@@ -1031,27 +1035,38 @@ class AdvancedMashup(BasicMashup):
     def __init__(self) -> None:
         super().__init__()
 
-    @print_attributes
+    
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
-            if len(self.processdataQuery) == 0:
+            if (len_pq := len(self.processdataQuery)) == 0:
                 print("No ProcessdataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
                 return []
-            if len(self.metadataQuery) == 0:
+            if (len_mq := len(self.metadataQuery)) == 0:
                 print("No MetadataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
                 return []
             mdf_list = [m_handler.getCulturalHeritageObjectsAuthoredBy(personId) for m_handler in self.metadataQuery]
             pdf_list = [p_handler.getAllActivities() for p_handler in self.processdataQuery]
             m_conc_df = pd.concat(mdf_list, ignore_index=True) 
-            # print(f"MQlist concatenated:\n{m_conc_df}")
             p_conc_df = pd.concat(pdf_list, ignore_index=True)
-            # print(f"PQlist concatenated:\n{p_conc_df}")
+            if p_conc_df.empty or m_conc_df.empty:
+                return []
             final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
-            final_df.drop_duplicates(inplace=True, ignore_index=True)
+            print(final_df)
+            if len_mq > 1 or len_pq > 1:
+                final_df.drop_duplicates(inplace=True, ignore_index=True)
             unique_ids = final_df["object_id"].unique()
-            cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-            obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+            cult_obj_dict = {obj_id : entity
+                                for obj_id in unique_ids 
+                                if (entity := self.getEntityById(obj_id) is not None)}
+            obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
+            print(type(obj_series))
             return obj_series.to_list()
+        except AttributeError as a:
+            print(f"{a}: no match for the input Id across all handlers")
+            return []
+        except TypeError:
+            print("Please specify an input Id")
+            return []
         except Exception as e:
             print(f"{e}")
             return []
