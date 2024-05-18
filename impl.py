@@ -245,19 +245,12 @@ class ProcessDataUploadHandler(UploadHandler):
             print("Connection to db failed. Try resetting the db path or check the well-formedness of the JSON file")
             return False
         except TypeError:
-            print("Please specify the path of the JSON file you want to upload")
+            print("Please specify a valid path for the JSON file you want to upload")
             return False
         except Exception as e:
             print(f"{e}")
             return False
-### Tests ###
-# process = ProcessDataUploadHandler()
-# process.setDbPathOrUrl("databases/relational.db")
-# process.pushDataToDb("data/process.json")
-# obj = UploadHandler()
-# obj.setDbPathOrUrl("databases/relational.db")
-# print(obj.pushDataToDb("data/process.json"))
-##############
+
 class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (can moren than 1) and date (in case it's 0)
     
     def pushDataToDb(self, path : str) -> bool:
@@ -1019,16 +1012,6 @@ class BasicMashup:
             result.append(obj)
         
         return result
-    
-### TEST ###
-# obj = BasicMashup()
-# pqh = ProcessDataQueryHandler()
-# pqh.setDbPathOrUrl("databases/relational.db")
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
-# obj.addProcessHandler(pqh)
-# obj.getAllActivities()
-# print(obj.getActivitiesByResponsibleInstitution("Heritage"))
 
 class AdvancedMashup(BasicMashup): 
 
@@ -1039,11 +1022,10 @@ class AdvancedMashup(BasicMashup):
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         try:
             if (len_pq := len(self.processdataQuery)) == 0:
-                print("No ProcessdataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
-                return []
+                raise AttributeError("No ProcessdataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
             if (len_mq := len(self.metadataQuery)) == 0:
-                print("No MetadataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
-                return []
+                raise AttributeError("No MetadataQueryHandler was specified for the AdvancedMashup process. Please add at least one")
+            
             mdf_list = [m_handler.getCulturalHeritageObjectsAuthoredBy(personId) for m_handler in self.metadataQuery]
             pdf_list = [p_handler.getAllActivities() for p_handler in self.processdataQuery]
             m_conc_df = pd.concat(mdf_list, ignore_index=True) 
@@ -1059,8 +1041,7 @@ class AdvancedMashup(BasicMashup):
                                 if (entity := self.getEntityById(obj_id) is not None)}
             obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
             return obj_series.to_list()
-        except AttributeError as a:
-            print(f"{a}: no match for the input Id across all handlers")
+        except AttributeError:
             return []
         except TypeError:
             print("Please specify an input Id")

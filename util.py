@@ -30,14 +30,12 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
 
 def regularize_data(x : Any) -> str:
     if isinstance(x, (list, set, tuple)):
-        return None if len(x) == 0 else ", ".join(x)
-    elif isinstance(x, str) and len(x) == 0:
-        return None
+        return ", ".join(x)
     elif isinstance(x, dict):
         values = [str(x[key]) for key in x.keys()]
         return ", ".join(values)
     elif isinstance(x, int):
-        return str(x)    
+        return str(x)
     else:
         return x
     
