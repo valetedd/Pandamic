@@ -941,7 +941,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
 
     
@@ -952,7 +952,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list() 
     
     
@@ -963,7 +963,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     
@@ -974,7 +974,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     
@@ -985,7 +985,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     
@@ -996,13 +996,13 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {ext_id:self.getEntityById(ext_id) for ext_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1)
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     
-    def getAcquisitionByTechnique(self, partialName: str) -> list[Acquisition]:
+    def getAcquisitionsByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
-        df_list = [handler.getAcquisitionByTechnique(partialName) for handler in self.processdataQuery]
+        df_list = [handler.getAcquisitionsByTechnique(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
@@ -1051,7 +1051,6 @@ class AdvancedMashup(BasicMashup):
             if p_conc_df.empty or m_conc_df.empty:
                 return []
             final_df = p_conc_df.merge(m_conc_df, how="right", left_on="object_id", right_on="Id")
-            print(final_df)
             if len_mq > 1 or len_pq > 1:
                 final_df.drop_duplicates(inplace=True, ignore_index=True)
             unique_ids = final_df["object_id"].unique()
@@ -1059,7 +1058,6 @@ class AdvancedMashup(BasicMashup):
                                 for obj_id in unique_ids 
                                 if (entity := self.getEntityById(obj_id) is not None)}
             obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
-            print(type(obj_series))
             return obj_series.to_list()
         except AttributeError as a:
             print(f"{a}: no match for the input Id across all handlers")

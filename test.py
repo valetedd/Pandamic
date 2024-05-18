@@ -31,8 +31,8 @@ class TestProjectBasic(unittest.TestCase):
     # launch of the database.
     metadata = "data" + sep + "meta.csv"
     process = "data" + sep + "process.json"
-    relational = "databases" + sep + "relational.db"
-    graph = "http://192.168.1.20:9999/blazegraph/sparql"
+    relational = "." + sep + "relational.db"
+    graph = "http://192.168.1.10:9999/blazegraph/sparql"
     
     def test_01_MetadataUploadHandler(self):
         u = MetadataUploadHandler()
@@ -56,8 +56,7 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getAllPeople(), DataFrame)
         self.assertIsInstance(q.getAllCulturalHeritageObjects(), DataFrame)
         self.assertIsInstance(q.getAuthorsOfCulturalHeritageObject("just_a_test"), DataFrame)
-        self.assertIsInstance(q.getCulturalHeritageObjectsAuthoredBy(
-            "just_a_test"), DataFrame)
+        self.assertIsInstance(q.getCulturalHeritageObjectsAuthoredBy("just_a_test"), DataFrame)
     
     def test_04_ProcessDataQueryHandler(self):
         q = ProcessDataQueryHandler()
@@ -67,7 +66,8 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getById("just_a_test"), DataFrame)
 
         self.assertIsInstance(q.getAllActivities(), DataFrame)
-        self.assertIsInstance(q.getActivitiesByResponsibleInstitution("just_a_test"), DataFrame)
+        self.assertIsInstance(q.getActivitiesByResponsibleInstitution(
+            "just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesByResponsiblePerson("just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesUsingTool("just_a_test"), DataFrame)
         self.assertIsInstance(q.getActivitiesStartedAfter("1088-01-01"), DataFrame)
