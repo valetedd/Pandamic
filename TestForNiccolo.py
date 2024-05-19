@@ -110,7 +110,7 @@ mdqh.setDbPathOrUrl(pathOrURL="http://192.168.1.20:9999/blazegraph/sparql")
 # mdqh.setDbPathOrUrl("http://10.201.47.161:9999/blazegraph/sparql")
 # mdqh.getAllCulturalHeritageObjects()
 
-print(mdqh.getCulturalHeritageObjectsAuthoredBy("pipo"))
+print(mdqh.getAuthorsOfCulturalHeritageObject("1"))
 
 
 

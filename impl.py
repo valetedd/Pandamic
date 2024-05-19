@@ -627,7 +627,11 @@ class MetadataQueryHandler(QueryHandler):
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
-        self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+        try:
+            self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+        except:
+            self.result_df = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Author", "Date Publishing", "Place", "Owner"])
+
         return self.result_df
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
@@ -644,17 +648,25 @@ class MetadataQueryHandler(QueryHandler):
         """)
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
-        self.result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
-                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)})
+        self.result_rows = []
+
+        for row in self.result:
+            self.result_rows.append(pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
+                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)}))
+        try:
+            self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+        except:
+            self.result_df = pd.DataFrame(columns=["Name", "Id", "Uri"])
+
         return self.result_df
-    
+
     # Step 5. someone stop me (I've done it again)
     def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
         self.request.setQuery(f"""
-        SELECT ?obj ?type ?id ?uri ?date ?namePlace ?nameOwner
+        SELECT ?obj ?type ?id ?uri ?date ?nameAuthor ?namePlace ?nameOwner
         WHERE {{ ?uri <https://schema.org/name> ?obj ;
                       rdf:type ?typeUri ;
                       <https://schema.org/identifier> ?id ;
@@ -665,6 +677,7 @@ class MetadataQueryHandler(QueryHandler):
                  ?uriPlace rdfs:label ?namePlace .
                  ?uriOwner rdfs:label ?nameOwner .
                  ?persUri <https://schema.org/identifier> '{personId}' . 
+                 ?persUri <https://schema.org/givenName> ?nameAuthor .
                  OPTIONAL {{?uri <https://schema.org/datePublished> ?date . }}
                  }}
         """)
@@ -677,10 +690,12 @@ class MetadataQueryHandler(QueryHandler):
             if "date" in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                       "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
             elif "date" not in list(row.keys()):
                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
+                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
         try:
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
