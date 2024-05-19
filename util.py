@@ -27,6 +27,7 @@ def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
         return df
     except KeyError as e:
         print(f"{e}: json data is not well-formed")
+        return pd.DataFrame()
 
 def regularize_data(x : Any) -> str:
     if isinstance(x, (list, set, tuple)):
