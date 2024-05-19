@@ -527,7 +527,7 @@ class ProcessDataQueryHandler(QueryHandler):
             print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
         
-    def getAcquisitonInPeriod(self, startTime, endTime) -> pd.DataFrame:
+    def getAcquisitionInPeriod(self, startTime, endTime) -> pd.DataFrame:
         try:
             db = self.getDbPathOrUrl()
             conn = connect(db)
@@ -1150,7 +1150,7 @@ class AdvancedMashup(BasicMashup):
 
         id_set = set()
         for handler in self.processdataQuery:
-            df_got = handler.getAcquisitonInPeriod(startTime, endTime)
+            df_got = handler.getAcquisitionInPeriod(startTime, endTime)
             id = df_got["object_id"].tolist()
             id_set.update(id)
         
