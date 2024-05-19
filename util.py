@@ -1,6 +1,6 @@
 import pandas as pd
 import hashlib
-from typing import Any
+from typing import Any, Iterable
 
 def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
     try:
@@ -51,10 +51,13 @@ def hash_ids_for_df (df: pd.DataFrame, prefix: str) -> list[str]:
 
 def print_attributes(func):
     def wrapper(*args):
-        obj_list = func(*args)
+        result = func(*args)
         counter = 0
-        for obj in obj_list:
-            print(f"""ATTRIBUTES OF OBJECT AT INDEX {counter}:\n \n{type(obj)}; \n{list(obj.__dict__.values())}\n\n""")
-            counter += 1
-        return obj_list
+        if isinstance(result, Iterable) and result:
+            for obj in result:
+                print(f"""ATTRIBUTES OF OBJECTS RETURNED BY {func}\n\n INDEX {counter}:\n{type(obj)}; \n{list(obj.__dict__.values())}\n\n""")
+                counter += 1
+        else:
+            print(f"{func} RETURNED {result}")
+        return result
     return wrapper
