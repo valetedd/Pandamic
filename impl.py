@@ -527,13 +527,14 @@ class ProcessDataQueryHandler(QueryHandler):
             print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
         
-    def getAquisitionEndedBefore(self, input_date: str) -> pd.DataFrame:
+    def getAcquisitionInPeriod(self, startTime, endTime) -> pd.DataFrame:
         try:
             db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
-            input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
-            cursor.execute("""SELECT * FROM acquisitionData WHERE end_date <= ?""", (input_datetime))
+            start_datetime = datetime.strptime(startTime, '%Y-%m-%d')
+            end_datetime = datetime.strptime(endTime,'%Y-%m-%d')
+            cursor.execute("""SELECT * FROM acquisitionData WHERE start_date >=? AND end_date <= ?""", (start_datetime,end_datetime))
             data = cursor.fetchall()
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
@@ -897,6 +898,7 @@ class BasicMashup:
         df_list =[]
         for handler in self.metadataQuery:
             df_got = handler.getAuthorsOfCulturalHeritageObject(id)
+            print(df_got)
             df_list.append(df_got)
         
         
@@ -1077,53 +1079,15 @@ class AdvancedMashup(BasicMashup):
         id_set = set()
         for handler in self.processdataQuery:
             df_got = handler.getActivitiesByResponsiblePerson(person)
-            print(df_got["object_id"])
             id = df_got["object_id"].tolist()
             id_set.update(id)
         
-        # pprint(id_set)
 
-
-
-# # 需要根据从relationaldb返回的信息找到对应id, 根据id找到graphicdb的信息再使用下面的方法
         df_list  =[]
         for id in id_set:
             df_got = self.getEntityById(id)
             df_list.append(df_got)
         return df_list
-
-        # culturalHeritageObject_list = []
-        # for df in df_list:
-        #     for index, row in df.iterrows():
-        #         if 'Type' in row:
-        #             df = df.squeeze()
-        #             obj = None
-        #             object_type = row['Type']
-        #             if object_type == "Nautical chart":
-        #                 obj = NauticalChart(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Printed volume":
-        #                 obj = PrintedVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Herbarium":
-        #                 obj = Herbarium(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Printed material":
-        #                 obj = PrintedMaterial(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Specimen":
-        #                 obj = Specimen(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Painting":
-        #                 obj = Painting(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Map":
-        #                 obj = Map(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Manuscript volume":
-        #                 obj = ManuscriptVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Manuscript plate":
-        #                 obj = ManuscriptPlate(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-        #             elif object_type == "Model":
-        #                 obj = Model(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
-                    
-        #             if obj:
-        #                 culturalHeritageObject_list.append(obj)
- 
-        # return culturalHeritageObject_list
 
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
@@ -1183,17 +1147,16 @@ class AdvancedMashup(BasicMashup):
           return f"{e}"
         
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
-        df_list =[]
+
+        id_set = set()
         for handler in self.processdataQuery:
-            df_got = handler.getAquisitionEndedBefore(endTime)
-            df_list.append(df_got)
+            df_got = handler.getAcquisitionInPeriod(startTime, endTime)
+            id = df_got["object_id"].tolist()
+            id_set.update(id)
         
-        
-
-        person_list = []
-        for df in df_list:
-            for index, row in df.iterrows():
-                if 'Name' in row and 'Id' in row:
-                    person_list.append(Person(row['Id'],row['Name']))
-
-        return person_list
+        author_list = []
+        for id in id_set:
+            author =  self.getAuthorsOfCulturalHeritageObject(id)
+            print(author)
+            author_list.extend(author)
+        return author_list
