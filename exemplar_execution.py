@@ -25,7 +25,6 @@ from impl import MetadataUploadHandler, MetadataQueryHandler
 
 # 3) Importing the class for dealing with mashup queries
 from impl import AdvancedMashup
-import pandas as pd
 # Once all the classes are imported, first create the relational
 # database using the related source data
 rel_path = "databases/relational.db"
@@ -38,7 +37,7 @@ process.pushDataToDb("data/process.json")
 
 # Then, create the graph database (remember first to run the
 # Blazegraph instance) using the related source data
-blaz_url = "http://192.168.1.23:9999/blazegraph/" # copy-paste url appearing when the blazegraph instance is run
+blaz_url = "http://192.168.1.10:9999/blazegraph/" # copy-paste url appearing when the blazegraph instance is run
 grp_endpoint =  blaz_url + "sparql"
 # metadata = MetadataUploadHandler()
 # metadata.setDbPathOrUrl(grp_endpoint)
@@ -107,9 +106,9 @@ result_q17 = mashup.getActivitiesStartedAfter("2028-01-01")
 #print(f"method getActivitiesStartedAfter, wrong input: {result_q17}\n")
 
 result_q18 = mashup.getActivitiesEndedBefore("2023-06-10")
-#print(f"method getActivitiesEndedBefore: {result_q18}\n")
+# #print(f"method getActivitiesEndedBefore: {result_q18}\n")
 result_q19 = mashup.getActivitiesEndedBefore("2028-01-01")
-#print(f"method getActivitiesEndedBefore, wrong input: {result_q19}\n")
+# #print(f"method getActivitiesEndedBefore, wrong input: {result_q19}\n")
 
 result_q20 = mashup.getAcquisitionsByTechnique("Photogrammetry")
 #print(f"method getAcquisitionsByTechnique: {result_q20}\n")
