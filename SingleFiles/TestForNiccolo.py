@@ -101,16 +101,17 @@ from pprint import pprint
 pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 '''
 
-#mduh = MetadataUploadHandler()
+mduh = MetadataUploadHandler()
+mduh.setDbPathOrUrl("http://192.168.1.72:9999/blazegraph/sparql")
 mdqh = MetadataQueryHandler()
-mdqh.setDbPathOrUrl(pathOrURL="http://192.168.1.20:9999/blazegraph/sparql")
-# pdqh = ProcessDataQueryHandler()
-# pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
-#mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
+mdqh.setDbPathOrUrl("http://192.168.1.72:9999/blazegraph/sparql")
+#pdqh = ProcessDataQueryHandler()
+#pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
+mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 # mdqh.setDbPathOrUrl("http://10.201.47.161:9999/blazegraph/sparql")
 # mdqh.getAllCulturalHeritageObjects()
 
-print(mdqh.getAuthorsOfCulturalHeritageObject("1"))
+# pprint(mdqh.getAuthorsOfCulturalHeritageObject("1"))
 
 
 
@@ -120,7 +121,9 @@ am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
 test = am.getObjectsHandledByResponsibleInstitution("Heritage")
 for obj in test:
-    print(obj.getTitle())'''
+    print(obj.getTitle())
+'''
+
 '''
 qh = QueryHandler()
 qh.setDbPathOrUrl("http://192.168.1.57:9999/blazegraph/sparql")
