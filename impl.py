@@ -600,12 +600,6 @@ class MetadataQueryHandler(QueryHandler):
         self.result = self.result["results"]["bindings"]
         self.result_rows = []
 
-        #I'm keeping it just in case :) - DON'T DELETE IT!!!
-        # self.result_df = pd.DataFrame({"Object": pd.Series([row["obj"]["value"] for row in self.result]), "Type": pd.Series([row["type"]["value"] for row in self.result]),
-        #                                "Id": pd.Series([row["id"]["value"] for row in self.result]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
-        #                                "Author": pd.Series([row["nameAuthor"]["value"] for row in self.result]), "Date Publishing": pd.Series([row["date"]["value"] for row in self.result]),
-        #                                "Place": pd.Series([row["namePlace"]["value"] for row in self.result]), "Owner": pd.Series([row["nameOwner"]["value"] for row in self.result])}) 
-
         for row in self.result:
             if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
@@ -613,7 +607,7 @@ class MetadataQueryHandler(QueryHandler):
                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
             elif "nameAuthor" not in list(row.keys()) and "date" in list(row.keys()):
-               self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
@@ -624,15 +618,41 @@ class MetadataQueryHandler(QueryHandler):
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
             elif "nameAuthor" not in list(row.keys()) and "date" not in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"] for row in self.result]),
+                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
         try:
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
-        except:
-            self.result_df = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Author", "Date Publishing", "Place", "Owner"])
+            dfs_to_concat = []
+            # print (pd.pivot_table(self.result_df, index=["Id"], aggfunc="size"))
 
-        return self.result_df
+            for id, num in pd.pivot_table(self.result_df, index=["Id"], aggfunc="size").items(): # for each object that appears more than once
+                if int(num) > 1:
+                    item_to_search = [id]
+
+                    mask = self.result_df["Id"].isin(item_to_search) 
+                    df_of_mult_authors = self.result_df[mask]                 #bring me a selection of the df in which it appears
+                    # print(df_of_mult_authors)
+                    all_auth_of_curr_obj = df_of_mult_authors["Author"].tolist()  #list of the authors
+                    rows_to_drop = df_of_mult_authors.index.values.tolist()      #list of the indexes
+                    # print (all_auth_of_curr_obj, rows_to_drop)
+                    auth = "; ".join(all_auth_of_curr_obj)                      #create one string for the author
+                    row_to_insert = self.result_df.loc[[rows_to_drop[0]]].copy()                          #take one of the rows and copy it
+                    # print("row to insert before:", row_to_insert)
+                    row_to_insert.at[rows_to_drop[0],"Author"] = auth               #modify the authors putting in the single string with all of them
+                    # print("row to insert after", row_to_insert)
+                    dfs_to_concat.append(row_to_insert)                            #we'll concateate that row
+                    self.result_df = self.result_df.drop(x for x in rows_to_drop)      #drop all the rows with that id that are now useless
+                    # print(self.result_df)
+
+            dfs_to_concat.append(self.result_df)                                 #add the df with the deleted rows in the list that will be concatenated
+            result = pd.concat(dfs_to_concat, join="outer", ignore_index=True)   #concatenate all the rows with the df
+            # print (result[["Author", "Object"]])
+            return result
+        except:
+            result = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Author", "Date Publishing", "Place", "Owner"])
+
+        return result
     
     # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
@@ -651,8 +671,8 @@ class MetadataQueryHandler(QueryHandler):
         self.result_rows = []
 
         for row in self.result:
-            self.result_rows.append(pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in self.result]), "Id": pd.Series([row["id"]["value"] for row in self.result]), 
-                          "Uri": pd.Series([row["uri"]["value"]] for row in self.result)}))
+            self.result_rows.append(pd.DataFrame({"Name": pd.Series([row["name"]["value"]]), "Id": pd.Series([row["id"]["value"]]), 
+                          "Uri": pd.Series([row["uri"]["value"]])}))
         try:
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
         except:
