@@ -853,7 +853,7 @@ class BasicMashup:
                     person_list.append(Person(row['Id'], row['Name']))
 
         return person_list
-
+    
     @print_attributes
     def getAllCulturalHeritageObjects(self) -> list[CulturalHeritageObject]:
         df_list =[]
@@ -865,29 +865,28 @@ class BasicMashup:
         for df in df_list:
             for index, row in df.iterrows():
                 if 'Type' in row:
-                    df = df.squeeze()
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = NauticalChart(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = PrintedVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Herbarium":
-                        obj = Herbarium(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Herbarium(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = PrintedMaterial(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Specimen":
-                        obj = Specimen(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Specimen(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Painting":
-                        obj = Painting(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Painting(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Map":
-                        obj = Map(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Map(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = ManuscriptVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = ManuscriptPlate(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Model":
-                        obj = Model(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Model(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)
@@ -922,29 +921,28 @@ class BasicMashup:
         for df in df_list:
             for index, row in df.iterrows():
                 if 'Type' in row:
-                    df = df.squeeze()
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = NauticalChart(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = PrintedVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Herbarium":
-                        obj = Herbarium(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Herbarium(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = PrintedMaterial(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Specimen":
-                        obj = Specimen(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Specimen(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Painting":
-                        obj = Painting(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Painting(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Map":
-                        obj = Map(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Map(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = ManuscriptVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = ManuscriptPlate(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     elif object_type == "Model":
-                        obj = Model(df['Id'], df['Object'], df['Date Publishing'], df['Owner'], df['Place'], df['Author'])
+                        obj = Model(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)
@@ -959,7 +957,7 @@ class BasicMashup:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
-        obj_series = final_df.apply(lambda row: self.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
 
     @print_attributes
@@ -1137,13 +1135,16 @@ class AdvancedMashup(BasicMashup):
                 
         except Exception as e:
           return f"{e}"
-        
+
+
     @print_attributes  
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
 
         id_set = set()
         for handler in self.processdataQuery:
+
             df_got = handler.getAcquisitionInPeriod(startTime, endTime)
+
             id = df_got["object_id"].tolist()
             id_set.update(id)
         
@@ -1151,4 +1152,30 @@ class AdvancedMashup(BasicMashup):
         for id in id_set:
             author =  self.getAuthorsOfCulturalHeritageObject(id)
             author_list.extend(author)
-        return author_list
+        return author_list   
+    
+    # @print_attributes  
+    # def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
+    #     id_set = set()
+    #     for handler in self.processdataQuery:
+    #         df_got = handler.getAcquisitionInPeriod(startTime, endTime)
+    #         id = df_got["object_id"].tolist()
+    #         id_set.update(id)
+    #     auth_id = set()
+    #     author_list = []
+    #     for id in id_set:
+    #         authors =  self.getAuthorsOfCulturalHeritageObject(id)
+    #         print(f"getAuthorsOfCulturalHeritageObject returns {authors}")
+    #         if len(authors) > 1:
+    #             for author in authors:
+    #                 if author.id not in auth_id:
+    #                     author_list.append(author)
+    #                     auth_id.add(author.id)
+    #         elif len(authors) == 1:
+    #             if authors[0].id not in auth_id:
+    #                 author_list.append(authors[0])
+    #                 auth_id.add(authors[0].id)
+    #         else:
+    #             continue
+
+    #     return author_list

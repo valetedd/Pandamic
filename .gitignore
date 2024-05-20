@@ -2,3 +2,4 @@
 /__pycache__/
 databases/blazegraph.jnl
 .ipynb_checkpoints
+alt_json_parser.py

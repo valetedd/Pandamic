@@ -53,7 +53,7 @@ def print_attributes(func):
     def wrapper(*args):
         result = func(*args)
         counter = 0
-        if isinstance(result, Iterable) and result:
+        if isinstance(result, list) and result:
             print(f"--- ATTRIBUTES OF OBJECTS RETURNED BY {func} ---\n\n")
             for obj in result:
                 print(f"""Index {counter}:\n{type(obj)}; \n{list(obj.__dict__.values())}\n\n""")
