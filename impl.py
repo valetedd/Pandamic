@@ -270,8 +270,8 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         })
         md_Series= md_Series.rename(columns={"Id":"identifier","Type":"type","Title":"name","Date":"datePublished","Author":"author","Owner":"maintainer","Place":"spatial"})
         
-        PDM = rdf.Namespace("http://ourwebsite/") #our base URI
-        graph_to_upload=rdf.Graph() # creating the graph that i will upload
+        PDM = rdf.Namespace("http://ourwebsite/")                  # our base URI
+        graph_to_upload=rdf.Graph()                                # creating the graph that i will upload
         graph_to_upload.bind("pdm", PDM)                                           # to remove!
         
         dict_of_obj_uri=dict()      
@@ -280,34 +280,29 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         our_obj.extend(list(md_Series["spatial"].unique())) #creating a list with all the unique values from the DF
         for item in our_obj:
             url_friendly_name=item.replace(" ", "_")
-            dict_of_obj_uri[item]=PDM+url_friendly_name # <-- adding to the dictionary each item with its own
-            # generated URI.
-
-        authors_viaf=dict() # I had to take them from VIAF or ULAN
+            dict_of_obj_uri[item]=PDM+url_friendly_name # adding to the dictionary each item with its own generated URI.
         
         for idx, row in md_Series.iterrows():
-            # Internal_ID="ID"+str(idx)
             title = row["name"]
             subj = PDM + row["identifier"] # generating a specific URI for each item
             
             for pred, obj in row.items():
                 
-                #added some general if clause to include that the triple isn't considered if the data is missing, unless it's the date that can be absent
+                # general if clause to include that the triple isn't considered if the data is missing, unless it's 
+                # date or author which can be absent following the data model
                 if len(obj) == 0 and pred != "datePublished" and len(obj) == 0 and pred != "author":
                     print(f"the item {title} doesn't conform to the model due to missing data. This object won't be returned by Mashup methods")
-                # elif pred == "datePublished" and len(obj) == 0:
-                #     if not(check_if_triples_exists(subj, SDO+pred, obj)):
-                #                 graph_to_upload.add((rdf.URIRef(subj),rdf.URIRef(SDO+pred),rdf.Literal(obj)))
+                
                 elif len(obj) == 0 and pred == "datePublished" or len(obj) == 0 and pred == "author":
                     pass
                 else:
                     if pred=="author":
                         list_of_auth = []
-                        list_of_auth.extend(obj.split("; "))
-                        
+                        list_of_auth.extend(obj.split("; ")) # create list and populate with the authors
+
                         for single_auth in list_of_auth:
                             obj_list = single_auth.split(" (")
-                            name=obj_list[0] #assigning the actual name to this variable
+                            name=obj_list[0]        # assigning the actual name of the author to this variable
                             author_ID=obj_list[1]
                             author_ID=author_ID[0:-1]
                             if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
@@ -624,7 +619,6 @@ class MetadataQueryHandler(QueryHandler):
         try:
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
             dfs_to_concat = []
-            # print (pd.pivot_table(self.result_df, index=["Id"], aggfunc="size"))
 
             for id, num in pd.pivot_table(self.result_df, index=["Id"], aggfunc="size").items(): # for each object that appears more than once
                 if int(num) > 1:
@@ -632,29 +626,27 @@ class MetadataQueryHandler(QueryHandler):
 
                     mask = self.result_df["Id"].isin(item_to_search) 
                     df_of_mult_authors = self.result_df[mask]                 #bring me a selection of the df in which it appears
-                    # print(df_of_mult_authors)
+
                     all_auth_of_curr_obj = df_of_mult_authors["Author"].tolist()  #list of the authors
                     rows_to_drop = df_of_mult_authors.index.values.tolist()      #list of the indexes
-                    # print (all_auth_of_curr_obj, rows_to_drop)
+
                     auth = "; ".join(all_auth_of_curr_obj)                      #create one string for the author
                     row_to_insert = self.result_df.loc[[rows_to_drop[0]]].copy()                          #take one of the rows and copy it
-                    # print("row to insert before:", row_to_insert)
+
                     row_to_insert.at[rows_to_drop[0],"Author"] = auth               #modify the authors putting in the single string with all of them
-                    # print("row to insert after", row_to_insert)
+
                     dfs_to_concat.append(row_to_insert)                            #we'll concateate that row
                     self.result_df = self.result_df.drop(x for x in rows_to_drop)      #drop all the rows with that id that are now useless
-                    # print(self.result_df)
 
             dfs_to_concat.append(self.result_df)                                 #add the df with the deleted rows in the list that will be concatenated
             result = pd.concat(dfs_to_concat, join="outer", ignore_index=True)   #concatenate all the rows with the df
-            # print (result[["Author", "Object"]])
             return result
         except:
             result = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Author", "Date Publishing", "Place", "Owner"])
 
         return result
     
-    # Step 4. do it again. But this time, use the f-string to insert dinamically the object to seach
+    # Step 4. Same process but this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
