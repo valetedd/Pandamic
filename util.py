@@ -81,6 +81,10 @@ def print_attributes(func):
                 print(f"""Index {counter}:\n{type(obj)}; \n{list(obj.__dict__.values())}\n\n""")
                 counter += 1
         else:
-            print(f"--- {func} RETURNED {result} ---\n\n")
+            print(f"--- {func} RETURNED {result} ---")
+            if result and isinstance(result, object):
+                print(f"{result.__dict__}\n\n")
+            else:
+                print("\n\n")
         return result
     return wrapper

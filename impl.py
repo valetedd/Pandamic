@@ -873,23 +873,19 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
         
-    @print_attributes
+    #@print_attributes
     def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
         df_list =[]
         for handler in self.metadataQuery:
             df_got = handler.getById(id)
-            
             if not df_got.empty:
                 df_list.append(df_got)
-
         if not df_list: 
             return None       
         df = pd.concat(df_list).dropna(how='all').reset_index(drop=True)
-        
         if not df.empty:
             for idx, s in df.iterrows():
                 if "Object" in s.index:
-                    print (s)
                     match s["Type"]:
                         case "Nautical chart":
                             return NauticalChart(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
@@ -972,7 +968,7 @@ class BasicMashup:
  
         return culturalHeritageObject_list
     
-    # @print_attributes
+    #@print_attributes
     def getAuthorsOfCulturalHeritageObject(self, id: str) -> list[Person]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -1226,28 +1222,3 @@ class AdvancedMashup(BasicMashup):
             author =  self.getAuthorsOfCulturalHeritageObject(id)
             author_list.extend(author)
         return author_list   
-    
-    # def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
-    #     id_set = set()
-    #     for handler in self.processdataQuery:
-    #         df_got = handler.getAcquisitionInPeriod(startTime, endTime)
-    #         id = df_got["object_id"].tolist()
-    #         id_set.update(id)
-    #     auth_id = set()
-    #     author_list = []
-    #     for id in id_set:
-    #         authors =  self.getAuthorsOfCulturalHeritageObject(id)
-    #         print(f"getAuthorsOfCulturalHeritageObject returns {authors}")
-    #         if len(authors) > 1:
-    #             for author in authors:
-    #                 if author.id not in auth_id:
-    #                     author_list.append(author)
-    #                     auth_id.add(author.id)
-    #         elif len(authors) == 1:
-    #             if authors[0].id not in auth_id:
-    #                 author_list.append(authors[0])
-    #                 auth_id.add(authors[0].id)
-    #         else:
-    #             continue
-
-    #     return author_list
