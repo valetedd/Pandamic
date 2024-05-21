@@ -32,7 +32,7 @@ class TestProjectBasic(unittest.TestCase):
     metadata = "data" + sep + "meta.csv"
     process = "data" + sep + "process.json"
     relational = "databases" + sep + "relational.db"
-    graph = "http://192.168.1.23:9999/blazegraph/sparql"
+    graph = "http://192.168.1.10:9999/blazegraph/sparql"
     
     def test_01_MetadataUploadHandler(self):
         u = MetadataUploadHandler()
@@ -56,12 +56,13 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getAllPeople(), DataFrame)
         self.assertIsInstance(q.getAllCulturalHeritageObjects(), DataFrame)
         self.assertIsInstance(q.getAuthorsOfCulturalHeritageObject("just_a_test"), DataFrame)
-        self.assertIsInstance(q.getCulturalHeritageObjectsAuthoredBy("just_a_test"), DataFrame)
+        self.assertIsInstance(q.getCulturalHeritageObjectsAuthoredBy(
+            "just_a_test"), DataFrame)
     
     def test_04_ProcessDataQueryHandler(self):
         q = ProcessDataQueryHandler()
-        self.assertTrue(q.setDbPathOrUrl(self.graph))
-        self.assertEqual(q.getDbPathOrUrl(), self.graph)
+        self.assertTrue(q.setDbPathOrUrl(self.relational))
+        self.assertEqual(q.getDbPathOrUrl(), self.relational)
 
         self.assertIsInstance(q.getById("just_a_test"), DataFrame)
 

@@ -797,6 +797,7 @@ class BasicMashup:
 
             if s["Id"] in cache_d:
                 return cache_d.get(s["Id"])
+            
             object_type = s['Type']
             match object_type:
                 case "Nautical chart":
@@ -955,7 +956,7 @@ class BasicMashup:
  
         return culturalHeritageObject_list
     
-    
+    #@print_attributes
     def getAuthorsOfCulturalHeritageObject(self, id: str) -> list[Person]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -972,7 +973,7 @@ class BasicMashup:
 
         return person_list
     
-    
+    #@print_attributes
     def getCulturalHeritageObjectsAuthoredBy(self, id: str) -> list[CulturalHeritageObject]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -1011,7 +1012,7 @@ class BasicMashup:
  
         return culturalHeritageObject_list
 
-    
+    #@print_attributes
     def getAllActivities(self) -> list[Activity]:
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1022,7 +1023,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
 
-
+    #@print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1033,7 +1034,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list() 
     
-    
+    #@print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1044,7 +1045,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
-    
+    #@print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1055,7 +1056,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
-    
+    #@print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1066,7 +1067,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
-    
+    #@print_attributes
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True)
@@ -1077,7 +1078,7 @@ class BasicMashup:
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
-    
+    #@print_attributes
     def getAcquisitionsByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
         df_list = [handler.getAcquisitionsByTechnique(partialName) for handler in self.processdataQuery]
@@ -1103,6 +1104,7 @@ class AdvancedMashup(BasicMashup):
     def __init__(self) -> None:
         super().__init__()
 
+    #@print_attributes
     def getActivitiesOnObjectsAuthoredBy(self, personId: str): 
         # Checking if the list attributes are non-empty
         if (len_pq := len(self.processdataQuery)) == 0:
@@ -1200,7 +1202,7 @@ class AdvancedMashup(BasicMashup):
           return f"{e}"
 
 
-      
+    #@print_attributes
     def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
 
         id_set = set()
@@ -1217,7 +1219,6 @@ class AdvancedMashup(BasicMashup):
             author_list.extend(author)
         return author_list   
     
-    #   
     # def getAuthorsOfObjectsAcquiredInTimeFrame(self, startTime:str, endTime: str) -> list[Person]:
     #     id_set = set()
     #     for handler in self.processdataQuery:
