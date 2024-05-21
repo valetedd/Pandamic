@@ -88,37 +88,38 @@ class Map(CulturalHeritageObject):
         super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Activity():
-    def __init__(self, institute:str, person: str|None, tool: str|None, start: str|None, end: str|None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         self.institute = institute
         self.person = person
         self.tool = tool
         self.start = start
         self.end = end
-        self.refersToObj = refersTo
+        self.obj = refersTo
     
     def getResponsibleInstitute(self) -> str:
         return self.institute
     
     def getResponsiblePerson(self) -> str | None:
-        return self.person
+        return self.person if self.person else None
     
     def getTool(self) -> set[str]:
-        if self.tool is None:
-            return set("")
-        else:
+        if self.tool:
             return set(self.tool.split(", "))
+        else:
+            return set("")
+            
     
     def getStartDate(self) -> str | None:
-        return self.start
+        return self.start if self.start else None
     
     def getEndDate(self) -> str | None:
-        return self.end
+        return self.end if self.end else None
     
     def refersTo(self) -> CulturalHeritageObject:
-        return self.refersToObj
+        return self.obj
     
 class Acquisition(Activity):
-    def __init__(self, institute:str, technique:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, technique:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
         self.technique = technique
         
@@ -126,19 +127,19 @@ class Acquisition(Activity):
         return self.technique
     
 class Processing(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Modelling(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Optimising(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Exporting(Activity):
-    def __init__(self, institute:str, person: str | None, tool: str | None, start: str | None, end: str | None, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 ################## UPLOAD MANAGEMENT ######################
@@ -731,7 +732,33 @@ class BasicMashup:
     def row_to_obj(cls, s: pd.Series, 
                    use_case: str, 
                    cache_d: dict = {}, 
-                   mode: str = None) -> object:
+                   mode: str = "dict") -> Activity | IdentifiableEntity:
+        """
+        Initializes and returns an object based on the data contained in a 
+        Pandas Series.
+    
+        Args:
+            s (pd.Series): input data.
+
+            use_case (str): determines the target of the method.\n
+                - "act": indicates that the data in s has to be used to initialize
+                         an Activity object.\n
+                - "ch_obj": indicates that the data in s has to be used to initialize
+                         a CulturalHeritage object.\n
+                - "pers": indicates that the data in s has to be used to initialize
+                         a Person object.\n
+            \n
+            cache_d (dict) default = {} : dicitionary objects based on their id 
+                                          as key. A custom one can be passed, otherwise 
+                                          it will work as a cache.\n
+            \n
+            mode (str) default = "dict": determines the behaviour of the function.\n
+                - "dict": solely rely on the data provided in cache_d.\n
+                - "in_row": look for other kind of data in s.\n
+                                
+    
+        Returns: An object of the class selected through the use_case parameter.
+        """
 
         if use_case == "act":
 
@@ -846,7 +873,7 @@ class BasicMashup:
             print("Please specify a handler to be added")
             return False
         
-    
+    @print_attributes
     def getEntityById(self, id: str) -> Person | CulturalHeritageObject | None:
         df_list =[]
         for handler in self.metadataQuery:
@@ -892,7 +919,7 @@ class BasicMashup:
         else:
             return None 
         
-        
+    #@print_attributes
     def getAllPeople(self) -> list[Person]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -907,7 +934,7 @@ class BasicMashup:
 
         return person_list
     
-    
+    #@print_attributes
     def getAllCulturalHeritageObjects(self) -> list[CulturalHeritageObject]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -946,11 +973,12 @@ class BasicMashup:
  
         return culturalHeritageObject_list
     
-    #@print_attributes
+    # @print_attributes
     def getAuthorsOfCulturalHeritageObject(self, id: str) -> list[Person]:
         df_list =[]
         for handler in self.metadataQuery:
             df_got = handler.getAuthorsOfCulturalHeritageObject(id)
+            df_got.drop_duplicates(inplace=True)
             df_list.append(df_got)
         
         
@@ -1137,7 +1165,7 @@ class AdvancedMashup(BasicMashup):
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", mode="in_row"), axis=1, result_type="reduce")
         return obj_series.to_list() # returning the Series as a list 
         
-    
+    #@print_attributes
     def getObjectsHandledByResponsiblePerson(self, person: str) -> list[CulturalHeritageObject]:
 
         id_set = set()
@@ -1145,7 +1173,7 @@ class AdvancedMashup(BasicMashup):
             df_got = handler.getActivitiesByResponsiblePerson(person)
             id = df_got["object_id"].tolist()
             id_set.update(id)
-        
+
 
         df_list  =[]
         for id in id_set:
@@ -1153,7 +1181,7 @@ class AdvancedMashup(BasicMashup):
             df_list.append(df_got)
         return df_list
     
-    
+    #@print_attributes
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
             if len(self.processdataQuery) == 0:                                                  # checking if there are any PDQHs in the attribute 
