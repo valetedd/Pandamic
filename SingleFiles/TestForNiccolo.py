@@ -1,7 +1,7 @@
 import unittest
 from os import sep
 from pandas import DataFrame
-from impl import MetadataUploadHandler, ProcessDataUploadHandler, QueryHandler
+from impl import MetadataUploadHandler, ProcessDataUploadHandler, QueryHandler, Specimen
 from impl import MetadataQueryHandler, ProcessDataQueryHandler
 from impl import AdvancedMashup
 from impl import Person, CulturalHeritageObject, Activity, Acquisition
@@ -102,26 +102,29 @@ pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester
 '''
 
 mduh = MetadataUploadHandler()
-mduh.setDbPathOrUrl("http://192.168.1.72:9999/blazegraph/sparql")
+mduh.setDbPathOrUrl("http://10.201.32.31:9999/blazegraph/sparql")
 mdqh = MetadataQueryHandler()
-mdqh.setDbPathOrUrl("http://192.168.1.72:9999/blazegraph/sparql")
-#pdqh = ProcessDataQueryHandler()
-#pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
-mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
+mdqh.setDbPathOrUrl("http://10.201.32.31:9999/blazegraph/sparql")
+pdqh = ProcessDataQueryHandler()
+pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
+# mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
+
 # mdqh.setDbPathOrUrl("http://10.201.47.161:9999/blazegraph/sparql")
 # mdqh.getAllCulturalHeritageObjects()
 
 # pprint(mdqh.getAuthorsOfCulturalHeritageObject("1"))
 
 
-
+#o1 = Specimen(id="1", title="tuma", owner="mipa", place="fanculo")
+#print(o1.__dict__)
 '''
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
-test = am.getObjectsHandledByResponsibleInstitution("Heritage")
+test = am.getObjectsHandledByResponsibleInstitution("architecture")
+# print(test)
 for obj in test:
-    print(obj.getTitle())
+    print(obj.__dict__, type(obj), type(test))
 '''
 
 '''

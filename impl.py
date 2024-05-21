@@ -28,7 +28,7 @@ class Person(IdentifiableEntity):
         return self.name
     
 class CulturalHeritageObject(IdentifiableEntity):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|str|None):
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
         super().__init__(id)
         self.title = title
         self.date = date
@@ -48,44 +48,44 @@ class CulturalHeritageObject(IdentifiableEntity):
         return self.authors
 
 class NauticalChart(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class ManuscriptPlate(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class ManuscriptVolume(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class PrintedVolume(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class PrintedMaterial(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Herbarium(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Specimen(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Painting(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Model(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
         
 class Map(CulturalHeritageObject):
-    def __init__(self, id:str, title: str, date: str|None, owner: str, place: str, hasAuthor: list|None):
-        super().__init__(id, title, date, owner, place, hasAuthor)
+    def __init__(self, id:str, title: str, owner: str, place: str, date: str = "", hasAuthor: list = []):
+        super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Activity():
     def __init__(self, institute:str, person: str|None, tool: str|None, start: str|None, end: str|None, refersTo: CulturalHeritageObject):
@@ -246,33 +246,32 @@ class ProcessDataUploadHandler(UploadHandler):
             print(f"{e}")
             return False
 
-class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (can moren than 1) and date (in case it's 0)
+class MetadataUploadHandler(UploadHandler): 
     
     def pushDataToDb(self, path : str) -> bool:
         blzgrph = SPARQLUpdateStore()
-        endpoint = self.getDbPathOrUrl() # if you try this, remember to update the endpoint depending on the one set when running blzgraph
-        def check_if_triples_exists(subj, pred, obj):
+        endpoint = self.getDbPathOrUrl() # get the endpoint through heritance
+
+        def check_if_triples_exists(subj, pred, obj):     #with this function I'm checking if the triple i'm parsing is already present in my DB.
             if "http" not in obj:
                 obj = '"'+obj+'"'
             else:
                 obj = "<"+obj+">"
-            request = sw.SPARQLWrapper(endpoint)
+            request = sw.SPARQLWrapper(endpoint)               # I'm using SPARQLWrapper to query. 
             base_query = f"ASK {{ <{subj}> <{pred}> {obj} . }} "
             request.setReturnFormat(sw.JSON)
             request.setQuery(base_query)
             result = request.query().convert()
             return result["boolean"]
-            
-
+        
 
         md_Series = pd.read_csv(path, keep_default_na=False, dtype={
             "Id":"string","Type":"string","Title":"string","Date":"string","Author":"string","Owner":"string","Place":"string"
         })
         md_Series= md_Series.rename(columns={"Id":"identifier","Type":"type","Title":"name","Date":"datePublished","Author":"author","Owner":"maintainer","Place":"spatial"})
         
-        PDM = rdf.Namespace("http://ourwebsite/")                  # our base URI
+        PDM = rdf.Namespace("http://github.com/valetedd/Pandamic/")  # our base URI
         graph_to_upload=rdf.Graph()                                # creating the graph that i will upload
-        graph_to_upload.bind("pdm", PDM)                                           # to remove!
         
         dict_of_obj_uri=dict()      
         our_obj = list(md_Series["type"].unique())
@@ -280,11 +279,11 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
         our_obj.extend(list(md_Series["spatial"].unique())) #creating a list with all the unique values from the DF
         for item in our_obj:
             url_friendly_name=item.replace(" ", "_")
-            dict_of_obj_uri[item]=PDM+url_friendly_name # adding to the dictionary each item with its own generated URI.
+            dict_of_obj_uri[item]=PDM+url_friendly_name    # adding to the dictionary each entity with its own generated URI.
         
         for idx, row in md_Series.iterrows():
             title = row["name"]
-            subj = PDM + row["identifier"] # generating a specific URI for each item
+            subj = PDM + row["identifier"] # generating a specific URI for each CHO
             
             for pred, obj in row.items():
                 
@@ -298,7 +297,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
                 else:
                     if pred=="author":
                         list_of_auth = []
-                        list_of_auth.extend(obj.split("; ")) # create list and populate with the authors
+                        list_of_auth.extend(obj.split("; ")) # create list and populate it with the authors
 
                         for single_auth in list_of_auth:
                             obj_list = single_auth.split(" (")
@@ -306,11 +305,11 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
                             author_ID=obj_list[1]
                             author_ID=author_ID[0:-1]
                             if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
-                                author_url = rdf.URIRef("http://viaf.org/" + author_ID.replace(":","/").lower())
+                                author_url = "http://viaf.org/" + author_ID.replace(":","/").lower()
                             elif "ULAN" in author_ID:
-                                author_url = rdf.URIRef("http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower())
+                                author_url = "http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower()
                             else:
-                                author_url = rdf.URIRef(PDM + author_ID.replace(":","/").lower())
+                                author_url = PDM + author_ID.replace(":","/").lower()
                             
                             if not(check_if_triples_exists(author_url, SDO.identifier, author_ID)):
                                 graph_to_upload.add((rdf.URIRef(author_url),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
@@ -345,6 +344,7 @@ class MetadataUploadHandler(UploadHandler): # (i.UploadHandler):  fix author (ca
             for sent in graph_to_upload.triples((None,None,None)):
                 blzgrph.add(sent)
             blzgrph.close()
+            print("Data successfully added to graph database")
             return True
         except:
             return False
@@ -359,9 +359,11 @@ class QueryHandler(Handler):
     
     def getById(self, id: str) -> pd.DataFrame:
         try:
-            self.endpoint = super().getDbPathOrUrl()
-            self.request = sw.SPARQLWrapper(self.endpoint)
+            self.endpoint = self.getDbPathOrUrl()
+            self.request = sw.SPARQLWrapper(self.endpoint)  # creating a SPARQLWrapper object around the endpoint  
             self.request.setReturnFormat(sw.JSON)
+
+            # dynamic query using f-string
             self.request.setQuery(f"""
             SELECT ?name ?type ?date ?namePlace ?nameOwner ?nameAuthor
             WHERE {{ ?uri <https://schema.org/identifier>  "{id}" . 
@@ -380,8 +382,9 @@ class QueryHandler(Handler):
             """)
             result = self.request.query().convert()
             result = result["results"]["bindings"]
-            for row in result:
-                if id.isdigit():
+
+            for row in result:                  # if the id is composed by only digits it's a CHO, therefore objects are initialized 
+                if id.isdigit():                # depending on the presence/absence of information in the result JSON file
                     if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
                         result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
@@ -398,7 +401,7 @@ class QueryHandler(Handler):
                         result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                         "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})
-                else:
+                else:                            # otherwise, it's a person. return just their name.
                     result_df = pd.DataFrame({"Person": pd.Series([row["name"]["value"]])})
             return result_df
         except Exception:
@@ -550,11 +553,11 @@ class ProcessDataQueryHandler(QueryHandler):
             return pd.DataFrame()
 
 class MetadataQueryHandler(QueryHandler):  
-    def __init__(self):   # Step 1. first of all, i set a fixed endpoint and format to return
+    def __init__(self):  
         super().__init__()  
     
-    # Step 2. set query, send it and convert the result, create a dynamical dataframe getting every information from the JSON file using one-line for-loops
-    def getAllPeople(self) -> pd.DataFrame:
+    # Set endpoint, initialize SPARQLWrapper object query, send it and convert the result, create a dynamical dataframe
+    def getAllPeople(self) -> pd.DataFrame:         # getting every information from the JSON file using one-line for-loops
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
         self.request.setReturnFormat(sw.JSON)
@@ -569,7 +572,7 @@ class MetadataQueryHandler(QueryHandler):
                           "Uri": pd.Series([row["uri"]["value"]] for row in result)})
         return result_df
 
-    # Step 3. do it again  - in this case the query is more complex
+    # Same process  - in this case the query is more complex to return all the information
     def getAllCulturalHeritageObjects(self) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
@@ -593,10 +596,10 @@ class MetadataQueryHandler(QueryHandler):
         self.request.setQuery(self.query)
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
-        self.result_rows = []
+        self.result_rows = []                                   # since CHO can either have author/date or not, different cases have to be considered.
 
-        for row in self.result:
-            if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
+        for row in self.result:                                 # add each row of the DF built to match those information. For empty values empty
+            if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):      # strings are used.
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]),
                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
@@ -617,11 +620,11 @@ class MetadataQueryHandler(QueryHandler):
                                        "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
         try:
-            self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+            self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)     #concat all the precedents rows in a single df.
+           
             dfs_to_concat = []
-
             for id, num in pd.pivot_table(self.result_df, index=["Id"], aggfunc="size").items(): # for each object that appears more than once
-                if int(num) > 1:
+                if int(num) > 1:                                                                 # (this happens when there are more authors)
                     item_to_search = [id]
 
                     mask = self.result_df["Id"].isin(item_to_search) 
@@ -638,7 +641,7 @@ class MetadataQueryHandler(QueryHandler):
                     dfs_to_concat.append(row_to_insert)                            #we'll concateate that row
                     self.result_df = self.result_df.drop(x for x in rows_to_drop)      #drop all the rows with that id that are now useless
 
-            dfs_to_concat.append(self.result_df)                                 #add the df with the deleted rows in the list that will be concatenated
+            dfs_to_concat.append(self.result_df)                             #add the original df with the deleted rows in the list that will be concatenated
             result = pd.concat(dfs_to_concat, join="outer", ignore_index=True)   #concatenate all the rows with the df
             return result
         except:
@@ -646,7 +649,7 @@ class MetadataQueryHandler(QueryHandler):
 
         return result
     
-    # Step 4. Same process but this time, use the f-string to insert dinamically the object to seach
+    # Same process as getAllPeople but this time, use the f-string to insert dinamically the object to seach
     def getAuthorsOfCulturalHeritageObject(self, objectId : str) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
@@ -672,7 +675,7 @@ class MetadataQueryHandler(QueryHandler):
 
         return self.result_df
 
-    # Step 5. someone stop me (I've done it again)
+    # Again, same process.
     def getCulturalHeritageObjectsAuthoredBy(self, personId : str) -> pd.DataFrame:
         self.endpoint = super().getDbPathOrUrl()
         self.request = sw.SPARQLWrapper(self.endpoint)
@@ -698,7 +701,7 @@ class MetadataQueryHandler(QueryHandler):
 
         self.result_rows = []
 
-        for row in self.result:
+        for row in self.result:                   # in this case the authors has to be present, so just the case of the missing date has to be considered.
             if "date" in list(row.keys()):
                 self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
@@ -728,7 +731,7 @@ class BasicMashup:
     def row_to_obj(cls, s: pd.Series, 
                    use_case: str, 
                    cache_d: dict = {}, 
-                   mode: str = "dict") -> Activity:
+                   mode: str = None) -> object:
 
         if use_case == "act":
 
@@ -776,33 +779,32 @@ class BasicMashup:
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
         
-        elif use_case == "ch_obj":
+        elif use_case == "ch_obj": # if the function is passed to generate CHOs
 
             if s["Id"] in cache_d:
                 return cache_d.get(s["Id"])
-            
             object_type = s['Type']
             match object_type:
                 case "Nautical chart":
-                    return NauticalChart(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Printed volume":
-                    return PrintedVolume(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Herbarium":
-                    return Herbarium(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Printed material":
-                    return PrintedMaterial(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Specimen":
-                    return Specimen(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Painting":
-                    return Painting(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Map":
-                    return Map(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Manuscript volume":
-                    return ManuscriptVolume(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Manuscript plate":
-                    return ManuscriptPlate(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
+                    return ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Model":
-                    return Model(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])     
+                    return Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
                 
         elif use_case == "pers":
             return Person(s['Id'], s['Name'])
@@ -1155,11 +1157,9 @@ class AdvancedMashup(BasicMashup):
     def getObjectsHandledByResponsibleInstitution(self, partialName: str):
         try:
             if len(self.processdataQuery) == 0:                                                  # checking if there are any PDQHs in the attribute 
-                print("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
-                return []
+                raise AttributeError("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
             if len(self.metadataQuery) == 0:                                                      # same but for the MDQHs
-                print("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
-                return []
+                raise AttributeError("No MetadataQueryHandler set for the AdvancedMashup process. Please add at least one")
             else:                                        # get the DFs using the corresponding methods using a quick in-line for loop
                 pdf_list = [pd_handler.getActivitiesByResponsibleInstitution(partialName) for pd_handler in self.processdataQuery]
                 mdf_list = [md_handler.getAllCulturalHeritageObjects() for md_handler in self.metadataQuery]
@@ -1167,44 +1167,17 @@ class AdvancedMashup(BasicMashup):
                 p_concat_df = pd.concat(pdf_list, join="outer", ignore_index=True)              
                 m_concat_df = pd.concat(mdf_list, join="outer", ignore_index=True)
                 merged_df = pd.merge(p_concat_df, m_concat_df, left_on="object_id", right_on="Id")   # after concatenating the list of DFs, they are merged on the ID of the object
-                
-                list_to_return = list()  # setting the list that will be returned
-                list_id = list()  # setting a list for the comparison of IDs, as to avoid adding multiple objects for the same CHO
-                
-                for idx, row in merged_df.iterrows():         # for any row in the df an object is created of the instance correspective to their type
-                    match row["Type"]:
-                        case "Nautical chart":
-                            obj_to_append = NauticalChart(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Manuscript plate":
-                            obj_to_append = ManuscriptPlate(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Manuscript volume":
-                            obj_to_append = ManuscriptVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Printed volume":
-                            obj_to_append = PrintedVolume(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Printed material":
-                            obj_to_append = PrintedMaterial(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Herbarium":
-                            obj_to_append = Herbarium(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Specimen":
-                            obj_to_append = Specimen(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Painting":
-                            obj_to_append = Painting(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Model":
-                            obj_to_append = Model(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                        case "Map":
-                            obj_to_append = Map(id=str(row["Id"]), title=row["Object"], date=str(row["Date Publishing"]), owner=row["Owner"], place=row["Place"], hasAuthor=row["Author"])
-                    
-                    if len(list_to_return) == 0:                   # quick check to see if 1) the result list is empty (add the python object regardless)
-                        list_to_return.append(obj_to_append)
-                        list_id.append(obj_to_append.getId())
-                    else:                                          # and otherwise 2) if there are python objects with the same ID already parsed (in this case, ignore the object)
-                        if obj_to_append.getId() not in list_id:
-                            list_to_return.append(obj_to_append)
-                            list_id.append(obj_to_append.getId())
-                        else:
-                            pass
 
-                return list_to_return
+                parsed_obj =set()
+                list_of_objs = []
+                for index, row in merged_df.iterrows():   # this for loop is to check if there are duplicate of object in the df
+                    if row["Id"] in parsed_obj:
+                        pass
+                    else:
+                        list_of_objs.append(BasicMashup.row_to_obj(row, use_case="ch_obj")) #apply the class method to newly parsed CHOs to the list that will be returned.
+                        parsed_obj.add(row["Id"])
+
+                return list_of_objs # convert the series to a list.
                 
         except Exception as e:
           return f"{e}"
