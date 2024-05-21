@@ -118,25 +118,26 @@ pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd s
 #o1 = Specimen(id="1", title="tuma", owner="mipa", place="fanculo")
 #print(o1.__dict__)
 
+'''
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
-test = am.getEntityById("1")
-print(test.__dict__)
-# for obj in test:
-#     print(obj.__dict__, type(obj), type(test))
-
+test = am.getObjectsHandledByResponsibleInstitution("Heritage")
+# print(test.__dict__)
+for obj in test:
+    print(obj.__dict__, type(obj), type(test))
 '''
+
 bm = BasicMashup()
 bm.addMetadataHandler(mdqh)
 bm.addProcessHandler(pdqh)
-test = bm.getEntityById("5")
-print(type(test))
-'''
+test = bm.getEntityById("ULAN:500114874")
+print(type(test), test.__dict__)
+
 '''
 qh = QueryHandler()
-qh.setDbPathOrUrl("http://192.168.1.57:9999/blazegraph/sparql")
-test = qh.getById("ULAN:500114874")
+qh.setDbPathOrUrl("http://10.201.38.2:9999/blazegraph/sparql")
+test = qh.getById(":500114874")
 print(test)
 '''
 
