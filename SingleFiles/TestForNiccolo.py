@@ -121,10 +121,10 @@ pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd s
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
-test = am.getObjectsHandledByResponsibleInstitution("Heritage")
+test = am.getObjectsHandledByResponsibleInstitution("architecture")
 # print(test)
 for obj in test:
-    print(obj.__dict__, type(obj))
+    print(obj.__dict__, type(obj), type(test))
 '''
 
 '''

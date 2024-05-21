@@ -790,32 +790,30 @@ class BasicMashup:
         
         elif use_case == "ch_obj": # if the function is passed to generate CHOs
 
-            if s["Id"] in cache_d.keys():       #if the id is already on the dictionary (so it already been parsed) ignore it
-                pass
-            else:
-                object_type = s['Type']         # otherwise, depending on the type create a different object. The Id will be added to the dictionary  
-                cache_d[s["Id"]] = "present"
-                match object_type:
-                    case "Nautical chart":
-                        return NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Printed volume":
-                        return PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Herbarium":
-                        return Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Printed material":
-                        return PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Specimen":
-                        return Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Painting":
-                        return Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Map":
-                        return Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Manuscript volume":
-                        return ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Manuscript plate":
-                        return ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
-                    case "Model":
-                        return Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
+            if s["Id"] in cache_d:
+                return cache_d.get(s["Id"])
+            object_type = s['Type']
+            match object_type:
+                case "Nautical chart":
+                    return NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Printed volume":
+                    return PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Herbarium":
+                    return Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Printed material":
+                    return PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Specimen":
+                    return Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Painting":
+                    return Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Map":
+                    return Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Manuscript volume":
+                    return ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Manuscript plate":
+                    return ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                case "Model":
+                    return Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
         else:
             return Person(s['Id'], s['Name'])
 
@@ -1153,15 +1151,17 @@ class AdvancedMashup(BasicMashup):
                 p_concat_df = pd.concat(pdf_list, join="outer", ignore_index=True)              
                 m_concat_df = pd.concat(mdf_list, join="outer", ignore_index=True)
                 merged_df = pd.merge(p_concat_df, m_concat_df, left_on="object_id", right_on="Id")   # after concatenating the list of DFs, they are merged on the ID of the object
-                # merged_df.drop_duplicates(inplace=True, ignore_index=True)
 
+                parsed_obj =set()
+                list_of_objs = []
+                for index, row in merged_df.iterrows():   # this for loop is to check if there are duplicate of object in the df
+                    if row["Id"] in parsed_obj:
+                        pass
+                    else:
+                        list_of_objs.append(BasicMashup.row_to_obj(row, use_case="ch_obj")) #apply the class method to newly parsed CHOs to the list that will be returned.
+                        parsed_obj.add(row["Id"])
 
-                srs_of_objs = merged_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="ch_obj"), axis=1, result_type="reduce") #apply the class method
-                # to obtain a series of objects for each row of the dataframe
-                srs_to_return = srs_of_objs[srs_of_objs.notna()] # filtering out the doubles (see the row_to_obj method of BM for more)
-                
-
-                return srs_to_return.to_list() # convert the series to a list.
+                return list_of_objs # convert the series to a list.
                 
         except Exception as e:
           return f"{e}"
