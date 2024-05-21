@@ -728,24 +728,19 @@ class BasicMashup:
     def row_to_obj(cls, s: pd.Series, 
                    use_case: str, 
                    cache_d: dict = {}, 
-                   mode: str = None) -> Activity:
+                   mode: str = "dict") -> Activity:
 
         if use_case == "act":
 
-            if isinstance(cache_d, dict):
-                if mode == "in_row" and s["object_id"] not in cache_d:
-                    obj = cls.row_to_obj(s, use_case="ch_obj", cache_d=cache_d)
-                    cache_d[s["object_id"]] = obj
-                cult_obj = cache_d.get(s["object_id"])
-
-            else:
-                cult_obj = AdvancedMashup().getEntityById(s["Id"])
+            if mode == "in_row" and s["object_id"] not in cache_d:
+                obj = cls.row_to_obj(s, use_case="ch_obj", cache_d=cache_d)
+                cache_d[s["object_id"]] = obj
+            cult_obj = cache_d.get(s["object_id"])
 
             curr_type = s["type"]
             match curr_type: 
                 case "acquisition":
-                    return Acquisition(
-                                    institute=s["responsible_institute"], 
+                    return Acquisition(institute=s["responsible_institute"], 
                                     technique=s["technique"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
@@ -753,32 +748,28 @@ class BasicMashup:
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
                 case "processing":
-                    return Processing(
-                                    institute=s["responsible_institute"], 
+                    return Processing(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)                                        
                 case "modelling":
-                    return Modelling(
-                                    institute=s["responsible_institute"], 
+                    return Modelling(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
                 case "optimising":
-                    return Optimising(
-                                    institute=s["responsible_institute"], 
+                    return Optimising(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)                                        
                 case "exporting":
-                    return Exporting(
-                                    institute=s["responsible_institute"], 
+                    return Exporting(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
@@ -812,8 +803,13 @@ class BasicMashup:
                     return ManuscriptPlate(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])
                 case "Model":
                     return Model(s["Id"],s['Object'],s['Date Publishing'],s['Owner'],s['Place'],s['Author'])     
-        else:
+                
+        elif use_case == "pers":
             return Person(s['Id'], s['Name'])
+        
+        else:
+            raise TypeError("'use_case' parameter can only be 'act', 'ch_obj' and 'pers'")
+
 
 
     def cleanMetadataHandlers(self) -> bool:
@@ -1006,77 +1002,97 @@ class BasicMashup:
 
     #@print_attributes
     def getAllActivities(self) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getAllActivities() for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
 
     #@print_attributes
     def getActivitiesByResponsibleInstitution(self, partialName: str) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getActivitiesByResponsibleInstitution(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list() 
     
     #@print_attributes
     def getActivitiesByResponsiblePerson(self, partialName: str) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getActivitiesByResponsiblePerson(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
     def getActivitiesUsingTool(self, partialName: str) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getActivitiesUsingTool(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
     def getActivitiesStartedAfter(self, date: str) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getActivitiesStartedAfter(date) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
     def getActivitiesEndedBefore(self, date: str) -> list[Activity]:
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getActivitiesEndedBefore(date) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Creating a dicitonary with all the CulturalHeritageObject objects based on their id
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
+        # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
         obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
     def getAcquisitionsByTechnique(self, partialName: str) -> list[Acquisition]:
         result = []
+        # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getAcquisitionsByTechnique(partialName) for handler in self.processdataQuery]
-        final_df = pd.concat(df_list, ignore_index=True)
+        final_df = pd.concat(df_list, ignore_index=True) # concatenating them
         if len(self.processdataQuery) > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
+        # Iterating over each row to initialize Acquisition objects
         for _, row in final_df.iterrows():
             cult_obj = self.getEntityById(row["object_id"])
             obj = Acquisition(
@@ -1087,7 +1103,7 @@ class BasicMashup:
                             start=row["start_date"], 
                             end=row["end_date"], 
                             refersTo=cult_obj)
-            result.append(obj)
+            result.append(obj) # appending each object to result list and returning it
         
         return result
 
