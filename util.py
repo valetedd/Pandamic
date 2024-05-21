@@ -1,39 +1,61 @@
 import pandas as pd
 import hashlib
 from typing import Any, Iterable
+from collections import deque
 
-def njson_to_df(json_data : list[dict]) -> pd.DataFrame:
+def njson_to_df(json_data : list[dict], types: tuple = ("acquisition", "processing", "modelling", "optimising", "exporting"), sparse_data: dict = {"technique" : ["acquisition"]}) -> pd.DataFrame:
     try:
-        df_dict = {"type":[], "responsible institute":[], "responsible person":[],"tool":[], # dictionary of expected labels 
-                    "start date":[], "end date":[], "technique":[], "object id":[]}          # based on the data model's specifications
-        act_attrs = {"responsible institute", "responsible person", "tool", "start date", "end date"}
-        # Traversing the json file
-        for item in json_data: # iterating over the list of dictionaries
-            id = item.pop("object id")
-            for act_type in item: # iterating over the activity-type dictionaries
-                df_dict["object id"].append((id))
-                df_dict["type"].append(act_type)
-                if act_type != "acquisition":
-                    df_dict["technique"].append(None)
-                for attribute in (attributes := item[act_type]): # iterating over the attribute-keys of each nested dictionary
-                    value = item[act_type][attribute]
-                    df_dict[attribute].append(value)
-                if len(attributes) < len(act_attrs): # handling missing key cases
-                    missing_attrs = act_attrs.difference(set(attributes))
-                    for attr in missing_attrs:
-                        df_dict[attr].append("")
-        df = pd.DataFrame(df_dict)
+        data_dict = {} # Dicitionary to store the data contained in the JSON
+
+        # Breadth-first approach to traversing the JSON
+        to_visit = deque(json_data)
+        while to_visit: # Iterating over the lenght of the queue of dictionaries to be visited by popping the first item
+            curr_item = to_visit.popleft()
+            for k, v in curr_item.items(): # Iterating over the key-value pairs of the current dict
+                # Handling nested dictionaries
+                if isinstance(v, dict):
+                    to_visit.append(v) # appending nested dictionaries to the end of queue
+                    if k in types and "type" not in data_dict:    
+                        data_dict["type"] = [k]  
+                    else:
+                        data_dict["type"].append(k)
+
+                # Dealing with other data
+                else: 
+                    if not k in data_dict:
+                        data_dict[k] = [v] 
+                    else:
+                        data_dict[k].append(v)
+
+                    # Repeating Id value for each type they refer to
+                    if isinstance(v, str) and v.isdigit():
+                       data_dict[k].extend([v for _ in range(len(types)-1)])
+
+                    # Handling sparse data 
+                    elif sparse_data and k in sparse_data:
+                        sparse_len = len(sparse_data[k])
+                        n = len(types) - sparse_len
+                        data_dict[k].extend([None for _ in range(n)])
+
+        # Constructing DataFrame from data_dict and making it prettier
+        df = pd.DataFrame(data_dict)
         df.columns = [col.replace(" ", "_") for col in df.columns]
+        df = df.loc[: , ["type", "responsible_institute", "responsible_person","tool", 
+                        "start_date", "end_date", "technique", "object_id"]]
         return df
+    
     except KeyError as e:
         print(f"{e}: json data is not well-formed")
+        return pd.DataFrame()
+    except TypeError as t:
+        print(t)
         return pd.DataFrame()
 
 def regularize_data(x : Any) -> str:
     if isinstance(x, (list, set, tuple)):
         return ", ".join(x)
     elif isinstance(x, dict):
-        values = [str(x[key]) for key in x.keys()]
+        values = [str(val) for val in x.values()]
         return ", ".join(values)
     elif isinstance(x, int):
         return str(x)

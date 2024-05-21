@@ -82,10 +82,10 @@ mashup.addMetadataHandler(metadata_qh)
 # result_q9 = mashup.getCulturalHeritageObjectsAuthoredBy("VIAF:1")
 #print(f"method getCulturalHeritageObjectsAuthoredBy wrong input: {result_q9}\n")
 
-result_q10 = mashup.getAllActivities()
+# result_q10 = mashup.getAllActivities()
 # #print(f"method getAllActivities: {result_q10}\n")
 
-result_q11 = mashup.getActivitiesByResponsibleInstitution("Heritage")
+# result_q11 = mashup.getActivitiesByResponsibleInstitution("Heritage")
 # #print(f"method getActivitiesByResponsibleInstitution: {result_q11}\n")
 # result_q12 = mashup.getActivitiesByResponsibleInstitution("Lidl")
 # #print(f"method getActivitiesByResponsibleInstitution, wrong input: {result_q12} \n")
@@ -118,8 +118,8 @@ result_q11 = mashup.getActivitiesByResponsibleInstitution("Heritage")
 # #print("--- AdMash ---\n")
 
 result_q22 = mashup.getActivitiesOnObjectsAuthoredBy("VIAF:100190422")
-# #print(f"method getActivitiesOnObjectsAuthoredBy: {result_q22}\n")
-# result_q23 = mashup.getActivitiesOnObjectsAuthoredBy("VIAF:1")
+print(f"method getActivitiesOnObjectsAuthoredBy: {result_q22}\n")
+result_q23 = mashup.getActivitiesOnObjectsAuthoredBy("VIAF:1")
 # #print(f"method getActivitiesOnObjectsAuthoredBy, wrong input: {result_q23}\n")
 
 # result_q24 = mashup.getObjectsHandledByResponsiblePerson("Jane")
