@@ -387,23 +387,23 @@ class QueryHandler(Handler):
             for row in result:                  # if the id is composed by only digits it's a CHO, therefore objects are initialized 
                 if id.isdigit():                # depending on the presence/absence of information in the result JSON file
                     if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
-                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                        result_df = pd.DataFrame({"Id": pd.Series([id]), "Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                         "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}) 
                     elif "nameAuthor" not in list(row.keys()) and "date" in list(row.keys()):
-                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                        result_df = pd.DataFrame({"Id": pd.Series([id]), "Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([""]), "Date Publishing": pd.Series([row["date"]["value"]]),
                                         "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}) 
                     elif "nameAuthor" in list(row.keys()) and "date" not in list(row.keys()):
-                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                        result_df = pd.DataFrame({"Id": pd.Series([id]), "Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([row["nameAuthor"]["value"]]), "Date Publishing": pd.Series([""]),
                                         "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})
                     elif "nameAuthor" not in list(row.keys()) and "date" not in list(row.keys()):
-                        result_df = pd.DataFrame({"Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                        result_df = pd.DataFrame({"Id": pd.Series([id]), "Object": pd.Series([row["name"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
                                         "Author": pd.Series([""]), "Date Publishing": pd.Series([""]),
                                         "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})
                 else:                            # otherwise, it's a person. return just their name.
-                    result_df = pd.DataFrame({"Person": pd.Series([row["name"]["value"]])})
+                    result_df = pd.DataFrame({"Id": pd.Series([id]), "Person": pd.Series([row["name"]["value"]])})
             return result_df
         except Exception:
             return pd.DataFrame()
@@ -887,34 +887,33 @@ class BasicMashup:
         df = pd.concat(df_list).dropna(how='all').reset_index(drop=True)
         
         if not df.empty:
-            try:
-                df = df.squeeze()
-                object_type = df['Type']
-                match object_type:
-                    case "Nautical chart":
-                        return NauticalChart(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Printed volume":
-                        return PrintedVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Herbarium":
-                        return Herbarium(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Printed material":
-                        return PrintedMaterial(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Specimen":
-                        return Specimen(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Painting":
-                        return Painting(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Map":
-                        return Map(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Manuscript volume":
-                        return ManuscriptVolume(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Manuscript plate":
-                        return ManuscriptPlate(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
-                    case "Model":
-                        return Model(id,df['Object'],df['Date Publishing'],df['Owner'],df['Place'],df['Author'])
+            for idx, s in df.iterrows():
+                if "Object" in s.index:
+                    print (s)
+                    match s["Type"]:
+                        case "Nautical chart":
+                            return NauticalChart(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Printed volume":
+                            return PrintedVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Herbarium":
+                            return Herbarium(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Printed material":
+                            return PrintedMaterial(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Specimen":
+                            return Specimen(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Painting":
+                            return Painting(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Map":
+                            return Map(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Manuscript volume":
+                            return ManuscriptVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Manuscript plate":
+                            return ManuscriptPlate(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                        case "Model":
+                            return Model(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                     
-            except:
-                name = df
-                return Person(id,name)
+                else:
+                    return Person(id,s["Person"])
             
         else:
             return None 
@@ -948,25 +947,25 @@ class BasicMashup:
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Herbarium":
-                        obj = Herbarium(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Specimen":
-                        obj = Specimen(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Painting":
-                        obj = Painting(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Map":
-                        obj = Map(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Model":
-                        obj = Model(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)
@@ -1005,25 +1004,25 @@ class BasicMashup:
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Herbarium":
-                        obj = Herbarium(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Specimen":
-                        obj = Specimen(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Painting":
-                        obj = Painting(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Map":
-                        obj = Map(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     elif object_type == "Model":
-                        obj = Model(row['Id'], row['Object'], row['Date Publishing'], row['Owner'], row['Place'], row['Author'])
+                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)

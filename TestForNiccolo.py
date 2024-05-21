@@ -1,7 +1,7 @@
 import unittest
 from os import sep
 from pandas import DataFrame
-from impl import MetadataUploadHandler, ProcessDataUploadHandler, QueryHandler, Specimen
+from impl import MetadataUploadHandler, ProcessDataUploadHandler, QueryHandler, Specimen, BasicMashup
 from impl import MetadataQueryHandler, ProcessDataQueryHandler
 from impl import AdvancedMashup
 from impl import Person, CulturalHeritageObject, Activity, Acquisition
@@ -101,10 +101,10 @@ from pprint import pprint
 pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
 '''
 
-mduh = MetadataUploadHandler()
-mduh.setDbPathOrUrl("http://10.201.32.31:9999/blazegraph/sparql")
+# mduh = MetadataUploadHandler()
+# mduh.setDbPathOrUrl("http://10.201.38.2:9999/blazegraph/sparql")
 mdqh = MetadataQueryHandler()
-mdqh.setDbPathOrUrl("http://10.201.32.31:9999/blazegraph/sparql")
+mdqh.setDbPathOrUrl("http://10.201.38.2:9999/blazegraph/sparql")
 pdqh = ProcessDataQueryHandler()
 pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/databases/relational.db")
 # mduh.pushDataToDb("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd semester/IMaWT/GitHub/Pandamic/data/meta.csv")
@@ -117,20 +117,27 @@ pdqh.setDbPathOrUrl("C:/Users/nicco/OneDrive/Desktop/DHDK/1st Year/courses/2nd s
 
 #o1 = Specimen(id="1", title="tuma", owner="mipa", place="fanculo")
 #print(o1.__dict__)
+
 '''
 am = AdvancedMashup()
 am.addMetadataHandler(mdqh)
 am.addProcessHandler(pdqh)
-test = am.getObjectsHandledByResponsibleInstitution("architecture")
-# print(test)
+test = am.getObjectsHandledByResponsibleInstitution("Heritage")
+# print(test.__dict__)
 for obj in test:
     print(obj.__dict__, type(obj), type(test))
 '''
 
+bm = BasicMashup()
+bm.addMetadataHandler(mdqh)
+bm.addProcessHandler(pdqh)
+test = bm.getEntityById("ULAN:500114874")
+print(type(test), test.__dict__)
+
 '''
 qh = QueryHandler()
-qh.setDbPathOrUrl("http://192.168.1.57:9999/blazegraph/sparql")
-test = qh.getById("ULAN:500114874")
+qh.setDbPathOrUrl("http://10.201.38.2:9999/blazegraph/sparql")
+test = qh.getById(":500114874")
 print(test)
 '''
 
