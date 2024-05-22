@@ -7,7 +7,7 @@ def njson_to_df(json_data : list[dict], types: tuple = ("acquisition", "processi
     try:
         data_dict = {} # Dicitionary to store the data contained in the JSON
 
-        # Breadth-first approach to traversing the JSON
+        # Breadth-first approach to traverse the JSON
         to_visit = deque(json_data)
         while to_visit: # Iterating over the lenght of the queue of dictionaries to be visited by popping the first item
             curr_item = to_visit.popleft()
