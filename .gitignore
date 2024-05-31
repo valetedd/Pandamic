@@ -1,5 +1,7 @@
 /stuff/
 /__pycache__/
 databases/blazegraph.jnl
-.ipynb_checkpoints
-alt_json_parser.py
+util_alt.py
+exemplar_execution.py
+/img
+README.md
