@@ -37,7 +37,7 @@ rel_path = "databases/relational.db"
 
 # Then, create the graph database (remember first to run the
 # Blazegraph instance) using the related source data
-blaz_url = "http://10.201.21.116:9999/blazegraph/" # copy-paste url appearing when the blazegraph instance is run
+blaz_url = "http://127.0.0.1:9999/blazegraph/" # copy-paste url appearing when the blazegraph instance is run
 grp_endpoint =  blaz_url + "sparql"
 # metadata = MetadataUploadHandler()
 # metadata.setDbPathOrUrl(grp_endpoint)
@@ -64,7 +64,7 @@ mashup.addMetadataHandler(metadata_qh)
 
 result_q1 = mashup.getEntityById("1")
 # #print(f"method getEntityById, wrong input: {result_q1}\n")
-result_q2 = mashup.getEntityById("35")
+result_q2 = mashup.getEntityById("33")
 # #print(f"method getEntityById Object: {result_q2}\n")
 result_q3 = mashup.getEntityById("VIAF:100190422")
 # #print(f"method getEntityById author: {result_q3}\n")
