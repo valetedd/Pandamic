@@ -376,12 +376,12 @@ class QueryHandler(Handler):
                     rdf:type ?typeUri ;
                     <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type .
-                ?uri <https://schema.org/datePublished> ?date ;
-                     <https://schema.org/spatial> ?uriPlace ;
+                ?uri <https://schema.org/spatial> ?uriPlace ;
                      <https://schema.org/maintainer> ?uriOwner .
                 ?uriPlace rdfs:label ?namePlace .
                 ?uriOwner rdfs:label ?nameOwner .
-                OPTIONAL {{ ?uri <https://schema.org/author> ?uriAuthor .
+                OPTIONAL {{ ?uri <https://schema.org/datePublished> ?date ;
+                                 <https://schema.org/author> ?uriAuthor .
                 ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }}
                  }} UNION {{ ?uri <https://schema.org/givenName> ?name }} . }}
             """)
