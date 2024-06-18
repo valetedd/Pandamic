@@ -283,8 +283,8 @@ class MetadataUploadHandler(UploadHandler):
         our_obj.extend(list(md_Series["maintainer"].unique())) 
         our_obj.extend(list(md_Series["spatial"].unique())) #creating a list with all the unique values from the DF
         for item in our_obj:
-            url_friendly_name=item.replace(" ", "_")
-            dict_of_obj_uri[item]=PDM+url_friendly_name    # adding to the dictionary each entity with its own generated URI.
+            uri_friendly_name=item.replace(" ", "_")
+            dict_of_obj_uri[item]=PDM+uri_friendly_name    # adding to the dictionary each entity with its own generated URI.
         
         for idx, row in md_Series.iterrows():
             title = row["name"]
@@ -294,10 +294,10 @@ class MetadataUploadHandler(UploadHandler):
                 
                 # general if clause to include that the triple isn't considered if the data is missing, unless it's 
                 # date or author which can be absent following the data model
-                if len(obj) == 0 and pred != "datePublished" and len(obj) == 0 and pred != "author":
+                if (len(obj) == 0 and pred != "datePublished") and (len(obj) == 0 and pred != "author"):
                     print(f"the item {title} doesn't conform to the model due to missing data. This object won't be returned by Mashup methods")
                 
-                elif len(obj) == 0 and pred == "datePublished" or len(obj) == 0 and pred == "author":
+                elif (len(obj) == 0 and pred == "datePublished") or (len(obj) == 0 and pred == "author"):
                     pass
                 else:
                     if pred=="author":
@@ -310,20 +310,20 @@ class MetadataUploadHandler(UploadHandler):
                             author_ID=obj_list[1]
                             author_ID=author_ID[0:-1]
                             if "VIAF" in author_ID:                        # depending on the type of ID we get a differet URI
-                                author_url = "http://viaf.org/" + author_ID.replace(":","/").lower()
+                                author_uri = "http://viaf.org/" + author_ID.replace(":","/").lower()
                             elif "ULAN" in author_ID:
-                                author_url = "http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower()
+                                author_uri = "http://vocab.getty.edu/page/" + author_ID.replace(":","/").lower()
                             else:
-                                author_url = PDM + author_ID.replace(":","/").lower()
+                                author_uri = PDM + author_ID.replace(":","/").lower()
                             
-                            if not(check_if_triples_exists(author_url, SDO.identifier, author_ID)):
-                                graph_to_upload.add((rdf.URIRef(author_url),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
+                            if not(check_if_triples_exists(author_uri, SDO.identifier, author_ID)):
+                                graph_to_upload.add((rdf.URIRef(author_uri),SDO.identifier,rdf.Literal(author_ID))) # one triple for each author: author's URI-its ID
 
-                            if not(check_if_triples_exists(subj, SDO.author, author_url)):
-                                graph_to_upload.add((rdf.URIRef(subj),SDO.author,rdf.URIRef(author_url)))          # URI of the book-URI of the author
+                            if not(check_if_triples_exists(subj, SDO.author, author_uri)):
+                                graph_to_upload.add((rdf.URIRef(subj),SDO.author,rdf.URIRef(author_uri)))          # URI of the book-URI of the author
 
-                            if not(check_if_triples_exists(author_url, SDO.givenName, name)):
-                                graph_to_upload.add((rdf.URIRef(author_url),SDO.givenName,rdf.Literal(name)))  # URI of the author - its name
+                            if not(check_if_triples_exists(author_uri, SDO.givenName, name)):
+                                graph_to_upload.add((rdf.URIRef(author_uri),SDO.givenName,rdf.Literal(name)))  # URI of the author - its name
                     else:
                         if pred == "type":
                             if not(check_if_triples_exists(subj, RDF.type, dict_of_obj_uri[obj])):
@@ -573,8 +573,11 @@ class MetadataQueryHandler(QueryHandler):
         """)
         result = self.request.query().convert()
         result = result["results"]["bindings"]
-        result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in result]), "Id": pd.Series([row["id"]["value"] for row in result]), 
+        try:
+            result_df = pd.DataFrame({"Name": pd.Series([row["name"]["value"] for row in result]), "Id": pd.Series([row["id"]["value"] for row in result]), 
                           "Uri": pd.Series([row["uri"]["value"]] for row in result)})
+        except:
+            result_df = pd.DataFrame(columns=["Name", "Id", "Uri"])
         return result_df
 
     # Same process  - in this case the query is more complex to return all the information
@@ -648,7 +651,6 @@ class MetadataQueryHandler(QueryHandler):
 
             dfs_to_concat.append(self.result_df)                             #add the original df with the deleted rows in the list that will be concatenated
             result = pd.concat(dfs_to_concat, join="outer", ignore_index=True)   #concatenate all the rows with the df
-            return result
         except:
             result = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Author", "Date Publishing", "Place", "Owner"])
 
@@ -669,12 +671,12 @@ class MetadataQueryHandler(QueryHandler):
         self.result = self.request.query().convert()
         self.result = self.result["results"]["bindings"]
         self.result_rows = []
-
-        for row in self.result:
-            self.result_rows.append(pd.DataFrame({"Name": pd.Series([row["name"]["value"]]), "Id": pd.Series([row["id"]["value"]]), 
-                          "Uri": pd.Series([row["uri"]["value"]])}))
         try:
+            for row in self.result:
+                self.result_rows.append(pd.DataFrame({"Name": pd.Series([row["name"]["value"]]), "Id": pd.Series([row["id"]["value"]]), 
+                          "Uri": pd.Series([row["uri"]["value"]])}))
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+
         except:
             self.result_df = pd.DataFrame(columns=["Name", "Id", "Uri"])
 
@@ -705,20 +707,20 @@ class MetadataQueryHandler(QueryHandler):
         self.result = self.result["results"]["bindings"]
 
         self.result_rows = []
-
-        for row in self.result:                   # in this case the authors has to be present, so just the case of the missing date has to be considered.
-            if "date" in list(row.keys()):
-                self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
-                                       "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
-                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
-            elif "date" not in list(row.keys()):
-               self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
-                                       "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
-                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
-                                       "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
         try:
+            for row in self.result:                   # in this case the authors has to be present, so just the case of the missing date has to be considered.
+                if "date" in list(row.keys()):
+                    self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([row["date"]["value"]]),
+                                        "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])})) 
+                elif "date" not in list(row.keys()):
+                    self.result_rows.append(pd.DataFrame({"Object": pd.Series([row["obj"]["value"]]), "Type": pd.Series([row["type"]["value"]]),
+                                        "Id": pd.Series([row["id"]["value"]]), "Uri": pd.Series([row["uri"]["value"]]), "Date Publishing": pd.Series([""]),
+                                            "Author": pd.Series([row["nameAuthor"]["value"]]), "Author Id": pd.Series([personId]),
+                                        "Place": pd.Series([row["namePlace"]["value"]]), "Owner": pd.Series([row["nameOwner"]["value"]])}))
             self.result_df = pd.concat(self.result_rows, join="outer", ignore_index=True)
+
         except:
             self.result_df = pd.DataFrame(columns=["Object", "Type", "Id", "Uri", "Date Publishing", "Place", "Owner"])
             
