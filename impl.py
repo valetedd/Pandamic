@@ -88,13 +88,13 @@ class Map(CulturalHeritageObject):
         super().__init__(id, title, owner, place, date, hasAuthor)
 
 class Activity():
-    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute:  str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         self.institute = institute
         self.person = person
         self.tool = tool
         self.start = start
         self.end = end
-        self.obj = refersTo
+        self.ch_obj = refersTo
     
     def getResponsibleInstitute(self) -> str:
         return self.institute
@@ -103,11 +103,7 @@ class Activity():
         return self.person if self.person else None
     
     def getTool(self) -> set[str]:
-        if self.tool:
-            return set(self.tool.split(", "))
-        else:
-            return set("")
-            
+        return set(self.tool.split(", ")) if self.tool else set("")
     
     def getStartDate(self) -> str | None:
         return self.start if self.start else None
@@ -116,10 +112,10 @@ class Activity():
         return self.end if self.end else None
     
     def refersTo(self) -> CulturalHeritageObject:
-        return self.obj
+        return self.ch_obj
     
 class Acquisition(Activity):
-    def __init__(self, institute:str, technique:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute: str, technique: str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
         self.technique = technique
         
@@ -127,19 +123,19 @@ class Acquisition(Activity):
         return self.technique
     
 class Processing(Activity):
-    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute: str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Modelling(Activity):
-    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute: str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Optimising(Activity):
-    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute: str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 class Exporting(Activity):
-    def __init__(self, institute:str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
+    def __init__(self, institute: str, person: str, tool: str, start: str, end: str, refersTo: CulturalHeritageObject):
         super().__init__(institute, person, tool, start, end, refersTo)
 
 ################## UPLOAD MANAGEMENT ######################
@@ -183,10 +179,9 @@ class UploadHandler(Handler):
                 pro.pushDataToDb(path)
                 return True
             else:
-                print("Unsupported format. Only .csv or .json files can be specified")
-                return False
+                raise ValueError("Unsupported format. Only .csv or .json files can be specified")
         except ValueError as e:
-            print(f"{e}: input argument must be a string")
+            print(e)
             return False
         except FileNotFoundError:
             print("File not found. Try specifying a different path")
@@ -194,11 +189,8 @@ class UploadHandler(Handler):
         except OperationalError:
             print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return False
-        except TypeError:
-            print("Please specify a path or URL")
-            return False
         except Exception as e:
-            print(f"{e}")
+            print(e)
             return False
             
 class ProcessDataUploadHandler(UploadHandler):
@@ -209,8 +201,11 @@ class ProcessDataUploadHandler(UploadHandler):
             # Loading data into a DataFrame
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)             
-            act_df = njson_to_df(data) # Converting json to Dataframe according to the data model
-            act_df = act_df.map(regularize_data) # Regularizing datatypes 
+            act_df = njson_to_df(data,
+                                 attributes=("responsible institute", "responsible person", "technique", "tool", "start date", "end date"),
+                                 id_key="object id",  
+                                 types=("acquisition", "processing", "modelling", "optimising", "exporting")) # Converting json to Dataframe according to the data model
+            act_df = act_df.map(regularize_data) # Regularizing datatypes
             
             # Adding column of stable hashes as internal IDs
             int_ids = hash_ids_for_df(act_df, prefix="act-")
@@ -220,32 +215,41 @@ class ProcessDataUploadHandler(UploadHandler):
             db = self.getDbPathOrUrl()        
             types = act_df["type"].unique()
             with connect(db) as con:
+                cur = con.cursor()
+                cur.execute("SELECT name FROM sqlite_master WHERE type='table';") # getting existing table names in db
+                names_table = cur.fetchall()
+                names_list = [row[0] for row in names_table if names_table] # storing them in a list
                 for t in types:
-                    sdf = act_df[act_df["type"] == t] # dividing data in sub-dataframes by type   
+                    sdf = act_df[act_df["type"] == t] # dividing data in sub-dataframes by type  
                     df_name = f"{t}Data" # table name to use in the db
-                    sdf.to_sql(df_name, con, if_exists="append", index=False)
-                    print(f"{df_name} succesfully uploaded")
-                    cur = con.cursor()
-                    cur.execute(f"""DELETE FROM {df_name} WHERE rowid NOT IN 
-                                    (SELECT MIN(rowid) FROM {df_name} 
-                                    GROUP BY internal_id);""") 
+                    if df_name in names_list:
+                        sdf.to_sql(df_name, con, if_exists="append", index=False) # appending values to existing table
+                        cur.execute(f"""CREATE TABLE new AS 
+                                        SELECT * FROM {df_name} 
+                                        GROUP BY internal_id
+                                        ORDER BY CAST(object_id AS INT)""") # creating a new table from existing one, removing duplicates
+                        cur.execute(f"""DROP TABLE {df_name};""") # deleting old table
+                        cur.execute(f"""ALTER TABLE new RENAME TO {df_name}""") # renaming new table to df_name
+                    else:
+                        sdf.to_sql(df_name, con, index=False)
             return True
         
         except ValueError as e:
-            print(f"{e}: input argument must be a string")
+            print(e)
             return False
         except FileNotFoundError:
             print("File not found. Try specifying a different path")
             return False
         except OperationalError:
-            print("Connection to db failed. Try resetting the db path or check the well-formedness of the JSON file")
+            print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return False
-        except TypeError:
-            print("Please specify a valid path for the JSON file you want to upload")
+        except KeyError as e:
+            print(f"{e}: json data is not well-formed")
             return False
         except Exception as e:
-            print(f"{e}")
+            print(e)
             return False
+        
 
 class MetadataUploadHandler(UploadHandler): 
     
@@ -734,13 +738,13 @@ class BasicMashup:
                    cache_d: dict = {}, 
                    mode: str = "dict") -> Activity | IdentifiableEntity:
         """
-        Initializes and returns an object based on the data contained in a 
+        Initializes and returns an IdentifiableEntity or an Activity object based on the data contained in a 
         Pandas Series.
     
         Args:
-            s (pd.Series): input data.
+            s: pd.Series = input data.
 
-            use_case (str): determines the target of the method.\n
+            use_case: str = determines the target of the method.\n
                 - "act": indicates that the data in s has to be used to initialize
                          an Activity object.\n
                 - "ch_obj": indicates that the data in s has to be used to initialize
@@ -748,13 +752,13 @@ class BasicMashup:
                 - "pers": indicates that the data in s has to be used to initialize
                          a Person object.\n
             \n
-            cache_d (dict) default = {} : dicitionary objects based on their id 
-                                          as key. A custom one can be passed, otherwise 
+            cache_d: dict (default = {}) = dicitionary storing IdentifiableEntity objects using their id 
+                                          as key. A custom one can be passed; otherwise 
                                           it will work as a cache.\n
             \n
-            mode (str) default = "dict": determines the behaviour of the function.\n
+            mode: str (default = "dict") = determines the behaviour of the function.\n
                 - "dict": solely rely on the data provided in cache_d.\n
-                - "in_row": look for other kind of data in s.\n
+                - "in_row": use values in 's' to initialize a CulturalHeritageObject object.\n
                                 
     
         Returns: An object of the class selected through the use_case parameter.
@@ -762,15 +766,18 @@ class BasicMashup:
 
         if use_case == "act":
 
+            if s["internal_id"] in cache_d:
+                return cache_d.get(s["internal_id"])
+
             if mode == "in_row" and s["object_id"] not in cache_d:
                 obj = cls.row_to_obj(s, use_case="ch_obj", cache_d=cache_d)
                 cache_d[s["object_id"]] = obj
-            cult_obj = cache_d.get(s["object_id"])
 
+            cult_obj = cache_d.get(s["object_id"])
             curr_type = s["type"]
             match curr_type: 
                 case "acquisition":
-                    return Acquisition(institute=s["responsible_institute"], 
+                    obj = Acquisition(institute=s["responsible_institute"], 
                                     technique=s["technique"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
@@ -778,33 +785,36 @@ class BasicMashup:
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
                 case "processing":
-                    return Processing(institute=s["responsible_institute"], 
+                    obj = Processing(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)                                        
                 case "modelling":
-                    return Modelling(institute=s["responsible_institute"], 
+                    obj = Modelling(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
                 case "optimising":
-                    return Optimising(institute=s["responsible_institute"], 
+                    obj = Optimising(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)                                        
                 case "exporting":
-                    return Exporting(institute=s["responsible_institute"], 
+                    obj = Exporting(institute=s["responsible_institute"], 
                                     person=s["responsible_person"], 
                                     tool=s["tool"], 
                                     start=s["start_date"], 
                                     end=s["end_date"], 
                                     refersTo=cult_obj)
+            
+            cache_d[s["internal_id"]] = obj
+            return obj
         
         elif use_case == "ch_obj": # if the function is passed to generate CHOs
 
@@ -813,28 +823,36 @@ class BasicMashup:
             object_type = s['Type']
             match object_type:
                 case "Nautical chart":
-                    return NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Printed volume":
-                    return PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Herbarium":
-                    return Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Printed material":
-                    return PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Specimen":
-                    return Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Painting":
-                    return Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Map":
-                    return Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Manuscript volume":
-                    return ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Manuscript plate":
-                    return ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
                 case "Model":
-                    return Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
+                    obj = Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
                 
+            cache_d[s['Id']] = obj
+            return obj
+        
         elif use_case == "pers":
-            return Person(s['Id'], s['Name'])
+
+            if s['Id'] in cache_d:
+                return cache_d.get(s['Id'])
+            obj = Person(s['Id'], s['Name'])
+            cache_d[s['Id']] = obj
+            return obj
         
         else:
             raise TypeError("'use_case' parameter can only be 'act', 'ch_obj' and 'pers'")
@@ -1036,7 +1054,7 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list()
 
     #@print_attributes
@@ -1050,7 +1068,7 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list() 
     
     #@print_attributes
@@ -1064,7 +1082,7 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
@@ -1078,7 +1096,7 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
@@ -1092,7 +1110,7 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
@@ -1106,12 +1124,12 @@ class BasicMashup:
         unique_ids = final_df["object_id"].unique()
         cult_obj_dict = {obj_id:self.getEntityById(obj_id) for obj_id in unique_ids}
         # Reducing each row to a Series using apply, passing the objects dictionary to initialize the Activity objects
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", cache_d=cult_obj_dict), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", cache_d=cult_obj_dict, mode="dict"), axis=1, result_type="reduce")
         return obj_series.to_list()
     
     #@print_attributes
     def getAcquisitionsByTechnique(self, partialName: str) -> list[Acquisition]:
-        result = []
+        result = [] # list to store the Activities objects
         # Creating lists of Dataframes by appling a QueryHandler method to each QueryHandler object in the list
         df_list = [handler.getAcquisitionsByTechnique(partialName) for handler in self.processdataQuery]
         final_df = pd.concat(df_list, ignore_index=True) # concatenating them
@@ -1127,7 +1145,7 @@ class BasicMashup:
                             tool=row["tool"], 
                             start=row["start_date"], 
                             end=row["end_date"], 
-                            refersTo=cult_obj)
+                            refersTo=cult_obj) # initializing object
             result.append(obj) # appending each object to result list and returning it
         
         return result
@@ -1157,7 +1175,7 @@ class AdvancedMashup(BasicMashup):
         if len_mq > 1 or len_pq > 1:
             final_df.drop_duplicates(inplace=True, ignore_index=True)
         # Applying class method reducing Dataframe to Series containing objects instances, initialized based on the data in each row-Series
-        obj_series = final_df.apply(lambda row: BasicMashup.row_to_obj(row, use_case="act", mode="in_row"), axis=1, result_type="reduce")
+        obj_series = final_df.apply(lambda row: self.row_to_obj(row, use_case="act", mode="in_row"), axis=1, result_type="reduce")
         return obj_series.to_list() # returning the Series as a list 
         
     #@print_attributes

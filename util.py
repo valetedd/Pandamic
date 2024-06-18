@@ -1,57 +1,52 @@
 import pandas as pd
 import hashlib
-from typing import Any, Iterable
-from collections import deque
+from collections import deque, defaultdict
 
-def njson_to_df(json_data : list[dict], types: tuple = ("acquisition", "processing", "modelling", "optimising", "exporting"), sparse_data: dict = {"technique" : ["acquisition"]}) -> pd.DataFrame:
-    try:
-        data_dict = {} # Dicitionary to store the data contained in the JSON
+def njson_to_df(json_data : list[dict],
+                attributes: tuple, 
+                types: tuple,
+                id_key: str = None) -> pd.DataFrame:
+                
+    data_dict = defaultdict(list) # Dictionary with list values to rearrange the data contained in the JSON
 
-        # Breadth-first approach to traverse the JSON
-        to_visit = deque(json_data)
-        while to_visit: # Iterating over the lenght of the queue of dictionaries to be visited by popping the first item
-            curr_item = to_visit.popleft()
-            for k, v in curr_item.items(): # Iterating over the key-value pairs of the current dict
-                # Handling nested dictionaries
-                if isinstance(v, dict):
-                    to_visit.append(v) # appending nested dictionaries to the end of queue
-                    if k in types and "type" not in data_dict:    
-                        data_dict["type"] = [k]  
-                    else:
-                        data_dict["type"].append(k)
+    # Breadth-first approach to traverse the JSON
+    to_visit = deque(json_data)   
+    while to_visit: # Iterating over the the queue of dictionaries to be visited by popping the first item
+        curr_dict = to_visit.popleft() 
+        id_val = curr_dict.pop(id_key) if id_key in curr_dict else None # Getting the id value in the current dict, if present
+        attr_check = False
+        for k, v in curr_dict.items(): # Iterating over the key-value pairs of the current dict 
+            if isinstance(v, dict): # Handling nested dictionaries
+                to_visit.append(v) 
 
-                # Dealing with other data
-                else: 
-                    if not k in data_dict:
-                        data_dict[k] = [v] 
-                    else:
-                        data_dict[k].append(v)
+             # Dealing with other data
+            else:
+                data_dict[k].append(v)
 
-                    # Repeating Id value for each type they refer to
-                    if isinstance(v, str) and v.isdigit():
-                       data_dict[k].extend([v for _ in range(len(types)-1)])
+            if k in types:
+                data_dict["type"].append(k)
+                if id_val:
+                    data_dict[id_key].append(id_val)
 
-                    # Handling sparse data 
-                    elif sparse_data and k in sparse_data:
-                        sparse_len = len(sparse_data[k])
-                        n = len(types) - sparse_len
-                        data_dict[k].extend([None for _ in range(n)])
+            elif k in attributes and not attr_check:
+                attr_check = True
+            
+        # Handling missing keys
+        if attr_check:
+            dict_keys = curr_dict.keys()
+            missing_keys = set(attributes).difference(dict_keys)
+            if missing_keys and len(missing_keys) < len(dict_keys):
+                for key in missing_keys:
+                    data_dict[key].append(None)
 
-        # Constructing DataFrame from data_dict and making it prettier
-        df = pd.DataFrame(data_dict)
-        df.columns = [col.replace(" ", "_") for col in df.columns]
-        df = df.loc[: , ["type", "responsible_institute", "responsible_person","tool", 
-                        "start_date", "end_date", "technique", "object_id"]]
-        return df
-    
-    except KeyError as e:
-        print(f"{e}: json data is not well-formed")
-        return pd.DataFrame()
-    except TypeError as t:
-        print(t)
-        return pd.DataFrame()
+    # Constructing DataFrame from data_dict and making it prettier
+    df = pd.DataFrame(data_dict)
+    df.columns = [col.replace(" ", "_") for col in df.columns]
+    df = df.loc[: , ["type", "responsible_institute", "responsible_person","tool", 
+                    "start_date", "end_date", "technique", "object_id"]]
+    return df
 
-def regularize_data(x : Any) -> str:
+def regularize_data(x) -> str:
     if isinstance(x, (list, set, tuple)):
         return ", ".join(x)
     elif isinstance(x, dict):
