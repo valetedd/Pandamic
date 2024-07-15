@@ -297,7 +297,9 @@ class MetadataUploadHandler(UploadHandler):
                 if (len(obj) == 0 and pred != "datePublished") and (len(obj) == 0 and pred != "author"):
                     print(f"the item {title} doesn't conform to the model due to missing data. This object won't be returned by Mashup methods")
                 
-                elif (len(obj) == 0 and pred == "datePublished") or (len(obj) == 0 and pred == "author"):
+                elif (len(obj) == 0 and pred == "datePublished"):
+                    pass
+                elif (len(obj) == 0 and pred == "author"):
                     pass
                 else:
                     if pred=="author":
@@ -596,8 +598,8 @@ class MetadataQueryHandler(QueryHandler):
                 ?uriPlace rdfs:label ?namePlace .
                 ?uriOwner rdfs:label ?nameOwner .
                 OPTIONAL { ?uri <https://schema.org/author> ?uriAuthor .
-                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . 
-                ?uri <https://schema.org/datePublished> ?date . }
+                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }
+                OPTIONAL { ?uri <https://schema.org/datePublished> ?date . }
                  }
         """
         
