@@ -373,7 +373,7 @@ class QueryHandler(Handler):
             self.request.setQuery(f"""
             SELECT ?name ?type ?date ?namePlace ?nameOwner ?nameAuthor
             WHERE {{ ?uri <https://schema.org/identifier>  "{id}" . 
-            {{ ?uri <https://schema.org/name> ?name ; 
+              ?uri <https://schema.org/name> ?name ; 
                     rdf:type ?typeUri ;
                     <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type .
@@ -381,14 +381,13 @@ class QueryHandler(Handler):
                      <https://schema.org/maintainer> ?uriOwner .
                 ?uriPlace rdfs:label ?namePlace .
                 ?uriOwner rdfs:label ?nameOwner .
-                OPTIONAL {{ ?uri <https://schema.org/datePublished> ?date ;
-                                 <https://schema.org/author> ?uriAuthor .
-                ?uriAuthor <https://schema.org/givenName> ?nameAuthor . }}
-                 }} UNION {{ ?uri <https://schema.org/givenName> ?name }} . }}
+                OPTIONAL {{ ?uri <https://schema.org/datePublished> ?date .}}
+                OPTIONAL {{?uri <https://schema.org/author> ?uriAuthor .
+                    ?uriAuthor <https://schema.org/givenName> ?nameAuthor .}}}}
             """)
             result = self.request.query().convert()
             result = result["results"]["bindings"]
-
+            
             for row in result:                  # if the id is composed by only digits it's a CHO, therefore objects are initialized 
                 if id.isdigit():                # depending on the presence/absence of information in the result JSON file
                     if "nameAuthor" in list(row.keys()) and "date" in list(row.keys()):
@@ -949,7 +948,7 @@ class BasicMashup:
 
         return person_list
     
-    @print_attributes
+    #@print_attributes
     def getAllCulturalHeritageObjects(self) -> list[CulturalHeritageObject]:
         df_list =[]
         for handler in self.metadataQuery:
