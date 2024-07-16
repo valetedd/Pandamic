@@ -7,7 +7,6 @@ from rdflib.namespace import SDO, RDF, RDFS
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 import SPARQLWrapper as sw
 from datetime import datetime
-from pprint import pprint
 
 ############# ENTITIES ###############
 
@@ -102,7 +101,7 @@ class Activity():
     def getResponsiblePerson(self) -> str | None:
         return self.person if self.person else None
     
-    def getTool(self) -> set[str]:
+    def getTools(self) -> set[str]:
         return set(self.tool.split(", ")) if self.tool else set("")
     
     def getStartDate(self) -> str | None:
@@ -492,7 +491,6 @@ class ProcessDataQueryHandler(QueryHandler):
             db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
-            input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
             cursor.execute("""SELECT * FROM acquisitionData WHERE start_date >= ?
                             UNION
                             SELECT * FROM processingData WHERE start_date >= ?
@@ -501,10 +499,11 @@ class ProcessDataQueryHandler(QueryHandler):
                             UNION
                             SELECT * FROM optimisingData WHERE start_date >= ?
                             UNION
-                            SELECT * FROM exportingData WHERE start_date >= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
+                            SELECT * FROM exportingData WHERE start_date >= ?""", (input_date, input_date, input_date, input_date, input_date))
             data = cursor.fetchall()
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
-            return pd.DataFrame(data, columns = columns)
+            df = pd.DataFrame(data, columns = columns)
+            return df 
         except OperationalError:
             print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
@@ -514,7 +513,6 @@ class ProcessDataQueryHandler(QueryHandler):
             db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
-            input_datetime = datetime.strptime(input_date, '%Y-%m-%d')
             cursor.execute("""SELECT * FROM acquisitionData WHERE end_date <= ?
                             UNION
                             SELECT * FROM processingData WHERE end_date <= ?
@@ -523,10 +521,12 @@ class ProcessDataQueryHandler(QueryHandler):
                             UNION
                             SELECT * FROM optimisingData WHERE end_date <= ?
                             UNION
-                            SELECT * FROM exportingData WHERE end_date <= ?""", (input_datetime, input_datetime, input_datetime, input_datetime, input_datetime))
+                            SELECT * FROM exportingData WHERE end_date <= ?""", (input_date, input_date, input_date, input_date, input_date))
             data = cursor.fetchall()
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
-            return pd.DataFrame(data, columns = columns)
+            df = pd.DataFrame(data, columns = columns)
+            clean_df = df.loc[df["end_date"] != ""]
+            return clean_df 
         except OperationalError:
             print("Connection to db failed. Try resetting the db path or check for inconsistencies in your data")
             return pd.DataFrame()
@@ -536,9 +536,7 @@ class ProcessDataQueryHandler(QueryHandler):
             db = self.getDbPathOrUrl()
             conn = connect(db)
             cursor = conn.cursor()
-            start_datetime = datetime.strptime(startTime, '%Y-%m-%d')
-            end_datetime = datetime.strptime(endTime,'%Y-%m-%d')
-            cursor.execute("""SELECT * FROM acquisitionData WHERE start_date >=? AND end_date <= ?""", (start_datetime,end_datetime))
+            cursor.execute("""SELECT * FROM acquisitionData WHERE start_date >=? AND end_date <= ?""", (startTime, endTime))
             data = cursor.fetchall()
             columns = ['internal_id', 'type', 'responsible_institute', 'responsible_person', 'tool','start_date', 'end_date', 'technique','object_id']
             return pd.DataFrame(data, columns = columns)
@@ -827,25 +825,25 @@ class BasicMashup:
             object_type = s['Type']
             match object_type:
                 case "Nautical chart":
-                    obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Printed volume":
-                    obj = PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Herbarium":
-                    obj = Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Printed material":
-                    obj = PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Specimen":
-                    obj = Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Painting":
-                    obj = Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Map":
-                    obj = Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Manuscript volume":
-                    obj = ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Manuscript plate":
-                    obj = ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                    obj = ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
                 case "Model":
-                    obj = Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))     
+                    obj = Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))     
                 
             cache_d[s['Id']] = obj
             return obj
@@ -910,25 +908,25 @@ class BasicMashup:
                 if "Object" in s.index:
                     match s["Type"]:
                         case "Nautical chart":
-                            return NauticalChart(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return NauticalChart(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Printed volume":
-                            return PrintedVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return PrintedVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Herbarium":
-                            return Herbarium(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return Herbarium(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Printed material":
-                            return PrintedMaterial(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return PrintedMaterial(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Specimen":
-                            return Specimen(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return Specimen(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Painting":
-                            return Painting(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return Painting(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Map":
-                            return Map(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return Map(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Manuscript volume":
-                            return ManuscriptVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return ManuscriptVolume(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Manuscript plate":
-                            return ManuscriptPlate(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return ManuscriptPlate(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                         case "Model":
-                            return Model(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=s['Author'].split("; "))
+                            return Model(id=str(id),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=self.getAuthorsOfCulturalHeritageObject(s["Id"]))
                     
                 else:
                     return Person(id,s["Person"])
@@ -951,7 +949,7 @@ class BasicMashup:
 
         return person_list
     
-    #@print_attributes
+    @print_attributes
     def getAllCulturalHeritageObjects(self) -> list[CulturalHeritageObject]:
         df_list =[]
         for handler in self.metadataQuery:
@@ -965,25 +963,25 @@ class BasicMashup:
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Herbarium":
-                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Specimen":
-                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Painting":
-                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Map":
-                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Model":
-                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)
@@ -1022,25 +1020,25 @@ class BasicMashup:
                     obj = None
                     object_type = row['Type']
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Herbarium":
-                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Specimen":
-                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Painting":
-                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Map":
-                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     elif object_type == "Model":
-                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=row['Author'].split("; "))
+                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)

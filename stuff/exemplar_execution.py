@@ -62,11 +62,11 @@ mashup.addProcessHandler(process_qh)
 # mashup.addMetadataHandler(metadata_qh)
 mashup.addMetadataHandler(metadata_qh)
 
-result_q1 = mashup.getEntityById("1")
+# result_q1 = mashup.getEntityById("1")
 # #print(f"method getEntityById, wrong input: {result_q1}\n")
-result_q2 = mashup.getEntityById("33")
+# result_q2 = mashup.getEntityById("33")
 # #print(f"method getEntityById Object: {result_q2}\n")
-result_q3 = mashup.getEntityById("VIAF:100190422")
+# result_q3 = mashup.getEntityById("VIAF:100190422")
 # #print(f"method getEntityById author: {result_q3}\n")
 
 # result_q4 = mashup.getAllPeople()
@@ -139,3 +139,18 @@ result_q3 = mashup.getEntityById("VIAF:100190422")
 # result_q29 = mashup.getAuthorsOfObjectsAcquiredInTimeFrame("2028-01-01", "2029-01-01")
 # print(f"method getAuthorsOfObjectsAcquiredInTimeFrame, wrong input: {result_q29}\n")
 
+activities = process_qh.getAllActivities()
+# start_dates = sorted(activities['start_date'].unique())
+# for date in start_dates:
+#     if date:
+#         df = process_qh.getActivitiesStartedAfter(date)
+#         print(f"\n{date}\n\n{df}")
+# date: 2023-12-10, expected activities: act-4c20c58, act-9eeb189
+# print('\n-----------------------\n')
+# end_dates = sorted(activities['end_date'].unique())
+# print(end_dates)
+# count = 0
+# for date in end_dates:
+#         df = process_qh.getActivitiesEndedBefore(date)
+#         print(f"{date}\n\n{df}")
+# lots of empty rows, only two expected activities: act-50d84b3, act-dc397d6
