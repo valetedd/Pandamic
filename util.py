@@ -73,28 +73,11 @@ def print_attributes(func):
         if isinstance(result, list) and result:
             print(f"--- ATTRIBUTES OF OBJECTS RETURNED BY {func} ---\n\n")
             for obj in result:
-                values = list(obj.__dict__.values())
-                if len(obj.__dict__.keys()) == 2:
-                    print(f"""Index {counter}:\n{type(obj)}; \n{values}\n\n""")
-                    counter += 1
-                    continue
-                init_obj_idx = -1
-                if isinstance(values[-1], str):
-                    init_obj_idx = -2
-                init_obj_att = values[init_obj_idx]
-                if isinstance(init_obj_att, list) and init_obj_att:
-                    values[init_obj_idx] = [list(att_obj.__dict__.values()) for att_obj in init_obj_att]
-                elif isinstance(init_obj_att, object) and init_obj_att:
-                    cho_values = list(init_obj_att.__dict__.values())
-                    if cho_values[init_obj_idx]:
-                        cho_values[init_obj_idx] = [list(pers.__dict__.values()) for pers in cho_values[init_obj_idx]]
-                    values[init_obj_idx] = cho_values
-                print(f"""Index {counter}:\n{type(obj)}; \n{values}\n\n""")
+                print(f"""Index {counter}:\n{type(obj)}; \n{list(obj.__dict__.values())}\n\n""")
                 counter += 1
         else:
             print(f"--- {func} RETURNED {result} ---")
             if result and isinstance(result, object):
-                result.authors = [auth.__dict__ for auth in result.authors]
                 print(f"{result.__dict__}\n\n")
             else:
                 print("\n\n")

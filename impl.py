@@ -822,27 +822,28 @@ class BasicMashup:
             if s["Id"] in cache_d:
                 return cache_d.get(s["Id"])
             object_type = s['Type']
+            authors = AdvancedMashup().getAuthorsOfCulturalHeritageObject(s["Id"])
             match object_type:
                 case "Nautical chart":
-                    obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Printed volume":
-                    obj = PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = PrintedVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Herbarium":
-                    obj = Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = Herbarium(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Printed material":
-                    obj = PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = PrintedMaterial(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Specimen":
-                    obj = Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = Specimen(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Painting":
-                    obj = Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = Painting(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Map":
-                    obj = Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = Map(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Manuscript volume":
-                    obj = ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = ManuscriptVolume(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Manuscript plate":
-                    obj = ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))
+                    obj = ManuscriptPlate(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
                 case "Model":
-                    obj = Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=cls.getAuthorsOfCulturalHeritageObject(s["Id"]))     
+                    obj = Model(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)     
                 
             cache_d[s['Id']] = obj
             return obj
