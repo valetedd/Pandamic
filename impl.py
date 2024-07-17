@@ -102,7 +102,7 @@ class Activity():
         return self.person if self.person else None
     
     def getTools(self) -> set[str]:
-        return set(self.tool.split(", ")) if self.tool else set("")
+        return set(self.tool.split(", ")) if self.tool else set()
     
     def getStartDate(self) -> str | None:
         return self.start if self.start else None
