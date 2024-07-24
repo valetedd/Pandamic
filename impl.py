@@ -373,7 +373,7 @@ class QueryHandler(Handler):
             self.request.setQuery(f"""
             SELECT ?name ?type ?date ?namePlace ?nameOwner ?nameAuthor
             WHERE {{ ?uri <https://schema.org/identifier>  "{id}" . 
-              ?uri <https://schema.org/name> ?name ; 
+              {{?uri <https://schema.org/name> ?name ; 
                     rdf:type ?typeUri ;
                     <https://schema.org/identifier> ?id .
                 ?typeUri rdfs:label ?type .
@@ -383,7 +383,9 @@ class QueryHandler(Handler):
                 ?uriOwner rdfs:label ?nameOwner .
                 OPTIONAL {{ ?uri <https://schema.org/datePublished> ?date .}}
                 OPTIONAL {{?uri <https://schema.org/author> ?uriAuthor .
-                    ?uriAuthor <https://schema.org/givenName> ?nameAuthor .}}}}
+                    ?uriAuthor <https://schema.org/givenName> ?nameAuthor .}}
+                   }} UNION {{ ?uri <https://schema.org/givenName> ?name .}} 
+                    }}
             """)
             result = self.request.query().convert()
             result = result["results"]["bindings"]
@@ -1237,8 +1239,12 @@ class AdvancedMashup(BasicMashup):
             id = df_got["object_id"].tolist()
             id_set.update(id)
         
-        author_list = []
+        author_names = {}
         for id in id_set:
-            author =  self.getAuthorsOfCulturalHeritageObject(id)
-            author_list.extend(author)
-        return author_list   
+            authors =  self.getAuthorsOfCulturalHeritageObject(id)
+            if not authors:
+                continue
+            for auth in authors:
+                if not auth.name in author_names:
+                    author_names[auth.name] = auth
+        return list(author_names.values())  
