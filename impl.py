@@ -735,8 +735,7 @@ class BasicMashup:
         self.metadataQuery: list[MetadataQueryHandler] = []
         self.processdataQuery: list[ProcessDataQueryHandler] = []
     
-    @classmethod
-    def row_to_obj(cls, s: pd.Series, 
+    def row_to_obj(self, s: pd.Series, 
                    use_case: str, 
                    cache_d: dict = {}, 
                    mode: str = "dict") -> Activity | IdentifiableEntity:
@@ -773,7 +772,7 @@ class BasicMashup:
                 return cache_d.get(s["internal_id"])
 
             if mode == "in_row" and s["object_id"] not in cache_d:
-                obj = cls.row_to_obj(s, use_case="ch_obj", cache_d=cache_d)
+                obj = self.row_to_obj(s, use_case="ch_obj", cache_d=cache_d)
                 cache_d[s["object_id"]] = obj
 
             cult_obj = cache_d.get(s["object_id"])
@@ -824,7 +823,7 @@ class BasicMashup:
             if s["Id"] in cache_d:
                 return cache_d.get(s["Id"])
             object_type = s['Type']
-            authors = AdvancedMashup().getAuthorsOfCulturalHeritageObject(s["Id"])
+            authors = self.getAuthorsOfCulturalHeritageObject(s["Id"])
             match object_type:
                 case "Nautical chart":
                     obj = NauticalChart(id=str(s["Id"]),title=s['Object'],date=str(s['Date Publishing']),owner=s['Owner'],place=s['Place'],hasAuthor=authors)
@@ -964,26 +963,27 @@ class BasicMashup:
                 if 'Type' in row:
                     obj = None
                     object_type = row['Type']
+                    auth = self.getAuthorsOfCulturalHeritageObject(row["Id"])
                     if object_type == "Nautical chart":
-                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = NauticalChart(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Printed volume":
-                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = PrintedVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Herbarium":
-                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = Herbarium(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Printed material":
-                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = PrintedMaterial(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Specimen":
-                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = Specimen(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Painting":
-                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = Painting(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Map":
-                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = Map(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Manuscript volume":
-                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = ManuscriptVolume(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Manuscript plate":
-                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = ManuscriptPlate(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     elif object_type == "Model":
-                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=self.getAuthorsOfCulturalHeritageObject(row["Id"]))
+                        obj = Model(id=row['Id'], title=row['Object'], date=row['Date Publishing'], owner=row['Owner'], place=row['Place'], hasAuthor=auth)
                     
                     if obj:
                         culturalHeritageObject_list.append(obj)
@@ -1219,7 +1219,7 @@ class AdvancedMashup(BasicMashup):
                     if row["Id"] in parsed_obj:
                         pass
                     else:
-                        list_of_objs.append(BasicMashup.row_to_obj(row, use_case="ch_obj")) #apply the class method to newly parsed CHOs to the list that will be returned.
+                        list_of_objs.append(self.row_to_obj(row, use_case="ch_obj")) #apply the class method to newly parsed CHOs to the list that will be returned.
                         parsed_obj.add(row["Id"])
 
                 return list_of_objs # convert the series to a list.
